@@ -1,76 +1,163 @@
-# Project template
+# NTUNHS Data Mining Course
 
-## Vignette
+This repository provides the programming environment for the NTUNHS Data Mining course.
 
-[Progress report](https://herdiantrisufriyana.github.io/project_template/index.html)
+You do NOT need to install R, RStudio, or Python manually. Everything runs inside Docker.
 
-## System requirements
+---
 
-Install Docker desktop once in your machine. Start the service every time you build this project image or run the container.
+# 1. First-Time Setup (Do Once Only)
 
-## Installation guide
+## Step 1 — Create a GitHub Account
 
-Change `project_template` to the project image name.
+Go to:
 
-Build the project image once for a new machine (currently support AMD64 and ARM64).
+https://github.com
 
-```{bash}
-docker build -t project_template --load .
+Create a free account.
+
+---
+
+## Step 2 — Install Git
+
+Download:
+
+https://git-scm.com/downloads
+
+After installation, verify in terminal:
+
+```bash
+git --version
 ```
 
-Run the container every time you start working on the project. Change left-side port numbers for either Rstudio or Jupyter lab if any of them is already used by other applications.
+---
 
-In terminal:
+## Step 3 — Install Docker Desktop
 
-```{bash}
-docker run -d -p 8787:8787 -p 8888:8888 -v "$(pwd)":/home/rstudio/project --name project_template_container project_template
+Download:
+
+https://docs.docker.com/get-started/get-docker/
+
+After installation:
+- Open Docker Desktop
+- Make sure it is running
+
+---
+
+## Step 4 — Install VS Code
+
+Download:
+
+https://code.visualstudio.com/download
+
+---
+
+# 2. Get the Course Repository
+
+## Step 1 — Fork the Repository
+
+Go to:
+
+https://github.com/herdiantrisufriyana/ntunhs_dm
+
+Click **Fork** to create your own copy.
+
+---
+
+## Step 2 — Clone Your Fork
+
+Open VS Code.
+
+Click:
+
+**Clone Git Repository**
+
+Change YOUR_GITHUB_USERNAME below your our own user name then copy and paste into the bar:
+
+```
+https://github.com/YOUR_GITHUB_USERNAME/ntunhs_dm.git
 ```
 
-In command prompt:
+Open the cloned folder.
 
-```{bash}
-docker run -d -p 8787:8787 -p 8888:8888 -v "%cd%":/home/rstudio/project --name project_template_container project_template
+---
+
+## Step 3 — Connect to Instructor Repository (For Updates)
+
+Open terminal in VS Code:
+
+Terminal → New Terminal
+
+Run:
+
+```bash
+git remote add upstream https://github.com/herdiantrisufriyana/ntunhs_dm.git
 ```
 
-## Instructions for use
+---
 
-### Rstudio
+# 3. Build and Run the Environment
 
-Change port number in the link, accordingly, if it is already used by other applications.
+In the project root folder, run:
 
-Visit http://localhost:8787.
-Username: rstudio
-Password: 1234
-
-Your working directory is ~/project.
-
-### Jupyter lab
-
-Use terminal/command prompt to run the container terminal.
-
-```{bash}
-docker exec -it project_template_container bash
+```bash
+docker compose up -d --build
 ```
 
-In the container terminal, run jupyter lab using this line of codes.
+First build may take several minutes.
 
-```{bash}
-jupyter-lab --ip=0.0.0.0 --no-browser --allow-root
+---
+
+# 4. Access the Applications
+
+## RStudio (No Login Required)
+
+Open:
+
+http://localhost:8787
+
+Go to working directory:
+
+```
+~/project
 ```
 
-Click a link in the results to open jupyter lab in a browser. Change port number in the link, accordingly, if it is already used by other applications.
+---
 
-### Ollama
+## JupyterLab (No Token Required)
 
-Install ollama in your machine.
+Open:
 
-Chose and aull a model (e.g., LLaMA 3). Then, run the server.
+http://localhost:8888
 
-```{bash}
-ollama pull llama3
-ollama serve
+---
+
+# 5. Stop the Environment
+
+```bash
+docker compose down
 ```
 
+---
 
+# 6. Update from Instructor
 
+When the instructor updates the repository:
 
+```bash
+git fetch upstream
+git merge upstream/master
+docker compose up -d --build
+```
+
+---
+
+# Important Rules
+
+- Do NOT upload large datasets (>25 MB) to GitHub.
+- Only push code.
+- Keep your data inside your local project folder.
+
+---
+
+You are now ready to use R and Python in a fully reproducible environment.

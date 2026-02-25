@@ -60,9 +60,6 @@ RUN /opt/conda/bin/conda install -y pytorch=2.5.1 -c pytorch
 RUN /opt/conda/bin/conda install -y torchvision=0.15.2 -c pytorch
 RUN /opt/conda/bin/conda install -y torchaudio=2.5.1 -c pytorch
 
-# Set base_url so ellmer can connect to host's Ollama server
-ENV OLLAMA_HOST=http://host.docker.internal:11434
-
 # Install R packages
 RUN R -e "install.packages('BiocManager', repos='http://cran.rstudio.com/')"
 RUN R -e "BiocManager::install('remotes', version='3.20', ask=FALSE, update=FALSE, force=TRUE)"
@@ -76,10 +73,6 @@ RUN R -e "BiocManager::install('broom.mixed', version='3.20', ask=FALSE, update=
 RUN R -e "BiocManager::install('pbapply', version='3.20', ask=FALSE, update=FALSE, force=TRUE)"
 RUN R -e "BiocManager::install('mice', version='3.20', ask=FALSE, update=FALSE, force=TRUE)"
 RUN R -e "BiocManager::install('doParallel', version='3.20', ask=FALSE, update=FALSE, force=TRUE)"
-RUN R -e "remotes::install_github('RConsortium/S7@v0.2.0')"
-RUN R -e "remotes::install_github('r-lib/httr2@v1.1.0')"
-RUN R -e "remotes::install_github('jeroen/curl@v6.2.0')"
-RUN R -e "remotes::install_github('tidyverse/ellmer@v0.1.1')"
 
 # Install additional system dependencies, Python libraries and R packages, chronologically
 
@@ -89,16 +82,3 @@ RUN echo 'setwd("~/project")' >> /home/rstudio/.Rprofile
 
 # Reset DEBIAN_FRONTEND variable
 ENV DEBIAN_FRONTEND=
-
-# Set the working directory
-WORKDIR /home/rstudio/
-
-# Expose ports for RStudio and JupyterLab
-EXPOSE 8787 8888
-
-# Set up the password for rstudio user
-ENV PASSWORD=1234
-RUN echo "rstudio:${PASSWORD}" | chpasswd && adduser rstudio sudo
-
-# Start RStudio Server
-CMD ["/init"]
