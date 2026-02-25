@@ -1,6 +1,6 @@
-# NTUNHS Data Mining Course
+# NTUNHS Machine Learning Course
 
-This repository provides the programming environment for the NTUNHS Data Mining course.
+This repository provides the programming environment for the NTUNHS Machine Learning course.
 
 You do NOT need to install R, RStudio, or Python manually. Everything runs inside Docker.
 
@@ -58,7 +58,7 @@ https://code.visualstudio.com/download
 
 Go to:
 
-https://github.com/herdiantrisufriyana/ntunhs_dm
+https://github.com/herdiantrisufriyana/ntunhs_ml
 
 Click **Fork** to create your own copy.
 
@@ -75,7 +75,7 @@ Click:
 Change YOUR_GITHUB_USERNAME below your our own user name then copy and paste into the bar:
 
 ```
-https://github.com/YOUR_GITHUB_USERNAME/ntunhs_dm.git
+https://github.com/YOUR_GITHUB_USERNAME/ntunhs_ml.git
 ```
 
 Open the cloned folder.
@@ -91,7 +91,7 @@ Terminal → New Terminal
 Run:
 
 ```bash
-git remote add upstream https://github.com/herdiantrisufriyana/ntunhs_dm.git
+git remote add upstream https://github.com/herdiantrisufriyana/ntunhs_ml.git
 ```
 
 ---
