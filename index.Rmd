@@ -45,7 +45,43 @@ my_theme_set()
 sessionInfo()
 ```
 
-# Section
+# Data Preprocessing
+
+## Raw data
+
+```{r Read code book, include=FALSE}
+code_book <- read_csv("inst/extdata/code_book.csv", show_col_types = FALSE)
+```
+
+```{r Show code book, echo=FALSE}
+show_table(code_book, "code_book", "Code book.")
+```
+
+```{r Column-type string, include=FALSE}
+coltype_str <- paste0(code_book$col_type, collapse = "")
+```
+
+```{r Raw data, include=FALSE}
+raw_data <- read_csv("inst/extdata/raw_data.csv", col_types = coltype_str)
+```
+
+```{r State row and column numbers of raw data, echo=FALSE}
+cat("Rows: ", nrow(raw_data), "\n")
+cat("Columns: ", ncol(raw_data))
+```
+
+## Select variable of interest
+
+```{r Variable of interest, include=FALSE}
+voi <- "pe"
+```
+
+```{r Rename the variable as outcome and put after identifier, include=FALSE}
+proc_data <-
+  raw_data |>
+  rename(outcome = voi) |>
+  select(id, outcome, everything())
+```
 
 
 
