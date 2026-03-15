@@ -1,8 +1,8 @@
 services:
   rstudio:
     build: .
-    image: ntunhs_dm:latest
-    container_name: ntunhs_dm_rstudio
+    image: ntunhs_ml:latest
+    container_name: ntunhs_ml_rstudio
     ports:
       - "127.0.0.1:8787:8787"
     volumes:
@@ -12,8 +12,8 @@ services:
     command: ["/init"]
 
   jupyter:
-    image: ntunhs_dm:latest
-    container_name: ntunhs_dm_jupyter
+    image: ntunhs_ml:latest
+    container_name: ntunhs_ml_jupyter
     ports:
       - "127.0.0.1:8888:8888"
     volumes:
