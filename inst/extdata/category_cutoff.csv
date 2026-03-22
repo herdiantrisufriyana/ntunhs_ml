@@ -1,0 +1,11 @@
+column,cutoff,category
+plgf,0,3-very low
+plgf,12,2-low
+plgf,100,1-normal
+uta_bn,0,1-none
+uta_bn,1,2-unilateral
+uta_bn,2,3-bilateral
+parity,0,1-nullipara
+parity,1,2-primipara
+parity,2,3-multipara
+parity,5,4-grande multipara

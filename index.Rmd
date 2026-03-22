@@ -31,6 +31,14 @@ library(knitr)
 library(kableExtra)
 library(ggpubr)
 library(pbapply)
+library(broom)
+library(brms)
+library(cmdstanr)
+library(broom.mixed)
+library(mice)
+filter <- dplyr::filter
+cbind <- base::cbind
+rbind <- base::rbind
 ```
 
 ```{r Load functions, include=FALSE}
@@ -83,10 +91,1296 @@ proc_data <-
   select(id, outcome, everything())
 ```
 
+# Data partition
 
+```{r Determine partition sample size, include=FALSE}
+whole_id <- proc_data$id
+whole_n <- length(whole_id)
+test_n <- ceiling(0.2 * whole_n)
+dev_n <- whole_n - test_n
+val_n <- ceiling(0.2 * dev_n)
+train_n <- dev_n - val_n
+```
 
+```{r Randomly select identifiers for each partition, include=FALSE}
+set.seed(seed)
+test_id <- sample(whole_id, test_n)
+dev_id <- setdiff(whole_id, test_id)
 
+set.seed(seed)
+val_id <- sample(dev_id, val_n)
+train_id <- setdiff(dev_id, val_id)
+```
 
+```{r Create set data, include=FALSE}
+set_data <-
+  data.frame(id = train_id, set = "training") |>
+  rbind(data.frame(id = val_id, set = "validation")) |>
+  rbind(data.frame(id = test_id, set = "testing")) |>
+  mutate(set = factor(set, c("training", "validation", "testing")))
+```
+
+```{r Join set data to outcome data, include=FALSE}
+outcome_set_data <-
+  proc_data |>
+  select(id, outcome) |>
+  left_join(set_data, by = "id")
+```
+
+```{r Summarize outcome class per set, include=FALSE}
+if(class(outcome_set_data$outcome) == "numeric"){
+  outcome_set_summary <-
+    outcome_set_data |>
+    group_by(set) |>
+    summarize(n = n(), .groups = "drop")
+  
+  outcome_set_plot <-
+    outcome_set_summary |>
+    ggplot(aes(set, n)) +
+    geom_col()
+}else{
+  outcome_set_summary <-
+    outcome_set_data |>
+    group_by(set, outcome) |>
+    summarize(n = n(), .groups = "drop")
+  
+  outcome_set_plot <-
+    outcome_set_summary |>
+    ggplot(aes(set, n, fill = outcome)) +
+    geom_col()
+}
+```
+
+```{r Show summary per set, echo=FALSE, fig.height=90/25.4, fig.width=190/25.4}
+outcome_set_plot
+```
+
+```{r Caption outcome class summary per set, echo=FALSE}
+show_figure_legend("outcome_set_plot", "Data partition.")
+```
+
+```{r Split samples using the identifiers for train set, include=FALSE}
+train_data <- slice(proc_data, match(train_id, id))
+```
+
+# QQ plot
+
+```{r Select numerical variables, include=FALSE}
+num_data <- select_if(train_data, is.numeric)
+```
+
+```{r State number of QQ plots, echo=FALSE}
+cat("Number of QQ plots (= # of numeric variables): ", ncol(num_data))
+```
+
+```{r Create custom function for QQ plot}
+qq_plotter <- function(variable, data){
+  data |>
+    `colnames<-`(str_replace_all(colnames(data), variable, "variable")) |>
+    ggplot(aes(sample = variable)) +
+  	geom_qq() +
+  	geom_qq_line() +
+    xlab("Normal +/- SD") +
+    ylab(variable) +
+    theme(axis.title = element_text(size = 10))
+}
+```
+
+```{r Create QQ plots, include=FALSE}
+if(ncol(num_data) > 0){
+  qq_plots <- pblapply(colnames(num_data), qq_plotter, num_data)
+  
+  qq_ncol <- 4
+  qq_nrow <- ceiling(length(qq_plots) / qq_ncol)
+  qq_plots <- ggarrange(plotlist = qq_plots, ncol = qq_ncol, nrow = qq_nrow)
+}
+```
+
+```{r Show QQ plots, echo=FALSE, fig.height=270/25.4, fig.width=190/25.4}
+if(ncol(num_data) > 0){
+  qq_plots
+}
+```
+
+```{r Caption QQ plots, echo=FALSE}
+if(ncol(num_data) > 0){
+  show_figure_legend("qq_plots", "QQ plots.")
+}
+```
+
+# Data transformation
+
+```{r Variables for squared-root test-transformation, include=FALSE}
+ttrans_var_sqrt <- c("plgf", "sflt1_plgf")
+```
+
+```{r Variables for squared test-transformation, include=FALSE}
+ttrans_var_sq <- c()
+```
+
+```{r Variables for log test-transformation, include=FALSE}
+ttrans_var_log <- c()
+```
+
+```{r State test-ransformed variables, echo=FALSE}
+ttrans_var <- c(ttrans_var_sqrt, ttrans_var_sq, ttrans_var_log)
+
+cat(
+  paste0("Test-transformed variables (", length(ttrans_var), "): ")
+  , ttrans_var
+)
+```
+
+```{r Create custom function for squared transformation}
+sq <- function(x){
+  x^2
+}
+```
+
+```{r Data test-transformation using numerical train set}
+if(ncol(num_data) > 0 & length(ttrans_var) > 0){
+  num_data_ttrans <-
+    num_data |>
+    mutate_at(ttrans_var_sqrt, sqrt) |>
+    mutate_at(ttrans_var_sq, sq) |>
+    mutate_at(ttrans_var_log, log)
+}
+```
+
+```{r Create QQ test-trans, include=FALSE}
+if(ncol(num_data_ttrans) > 0 & length(ttrans_var) > 0){
+  qt_plots <- pblapply(ttrans_var, qq_plotter, num_data_ttrans)
+  
+  qt_ncol <- 4
+  qt_nrow <- ceiling(length(qt_plots) / qt_ncol)
+  qt_plots <- ggarrange(plotlist = qt_plots, ncol = qt_ncol, nrow = qt_nrow)
+}
+```
+
+```{r Show QQ test-trans, echo=FALSE, fig.height=54/25.4, fig.width=190/25.4}
+if(ncol(num_data_ttrans) > 0 & length(ttrans_var) > 0){
+  qt_plots
+}
+```
+
+```{r Caption QQ test-trans, echo=FALSE}
+if(ncol(num_data_ttrans) > 0 & length(ttrans_var) > 0){
+  show_figure_legend("qt_plots", "QQ plots after data transformation.")
+}
+```
+
+```{r Variables for squared-root transformation, include=FALSE}
+trans_var_sqrt <- c("sflt1_plgf")
+```
+
+```{r Variables for squared transformation, include=FALSE}
+trans_var_sq <- c()
+```
+
+```{r Variables for log transformation, include=FALSE}
+trans_var_log <- c()
+```
+
+```{r State transformed variables, echo=FALSE}
+trans_var <- c(trans_var_sqrt, trans_var_sq, trans_var_log)
+cat(paste0("Transformed variables (", length(trans_var), "): "), trans_var)
+```
+
+```{r State categorized numerical variables, echo=FALSE}
+cat_num_var <- setdiff(ttrans_var, trans_var)
+cat_num_var <- c(cat_num_var, "uta_bn", "parity")
+cat(
+  paste0("Categorized numerical variables (", length(cat_num_var), "): ")
+  , cat_num_var
+)
+```
+
+```{r Create custom function categorize column using pre-defined cutoff}
+categorize_from_table <- function(data, cutoff_table){
+  
+  if(nrow(cutoff_table) == 0) return(data)
+  
+  cols <- unique(cutoff_table$column)
+  
+  for(col_name in cols){
+    
+    rules <-
+      cutoff_table |>
+      filter(column == col_name) |>
+      arrange(cutoff)
+    
+    breaks <- c(rules$cutoff, Inf)
+    labels <- rules$category
+    
+    data[[col_name]] <-
+      cut(
+        data[[col_name]]
+        , breaks = breaks
+        , labels = labels
+        , right = FALSE
+        , include.lowest = TRUE
+      )
+  }
+  
+  mutate_at(data, cols, factor)
+}
+```
+
+```{r Read pre-defined cutoff for categorization, include=FALSE}
+category_cutoff <-
+  read_csv("inst/extdata/category_cutoff.csv", show_col_types = FALSE)
+```
+
+```{r Transform data for all sets, include=FALSE}
+if(ncol(num_data) > 0){
+  
+  proc_data_trans <- proc_data
+  
+  # Numerical data transformation
+  if(length(trans_var) > 0){
+    proc_data_trans <-
+      proc_data_trans |>
+      mutate_at(trans_var_sqrt, sqrt) |>
+      mutate_at(trans_var_sq, sq) |>
+      mutate_at(trans_var_log, log)
+  }
+  
+  # Numerical data categorization
+  code_book_trans <- code_book
+  if(length(intersect(cat_num_var, unique(category_cutoff$column))) > 0){
+    proc_data_trans <-
+      proc_data_trans |>
+      categorize_from_table(category_cutoff)
+    
+    code_book_trans <-
+      read_csv("inst/extdata/code_book_trans.csv", show_col_types = FALSE)
+  }
+}
+```
+
+```{r Obtain train set from transformed dataset, include=FALSE}
+train_data_trans <- slice(proc_data_trans, match(train_id, id))
+```
+
+# Determine Tukey's fences
+
+```{r Select numerical variables from transformed dataset, include=FALSE}
+num_data_trans <- select_if(train_data_trans, is.numeric)
+```
+
+```{r State number of numeric variables after transformation, echo=FALSE}
+cat("Number of numeric variables after transformation: ", ncol(num_data_trans))
+```
+
+```{r Create custom function to determine Tukey fences}
+tukey_fence <- function(x, which = c("lb", "ub"), na.rm = TRUE){
+	which <- match.arg(which)
+
+	q1 <- quantile(x, 0.25, na.rm = na.rm)
+	q3 <- quantile(x, 0.75, na.rm = na.rm)
+	iqr <- q3 - q1
+
+	if(which == "lb"){
+		q1 - 1.5 * iqr
+	}else{
+		q3 + 1.5 * iqr
+	}
+}
+```
+
+```{r Determine Tukey fences from training set, include=FALSE}
+if(ncol(num_data_trans) > 0){
+  tukey_fence_lb <-
+    num_data_trans |>
+    summarize_all(tukey_fence, which = "lb") |>
+    gather(col_name, tukey_lb)
+  
+  tukey_fence_ub <-
+    num_data_trans |>
+    summarize_all(tukey_fence, which = "ub") |>
+    gather(col_name, tukey_ub)
+  
+  tukey_fences <-
+    tukey_fence_lb |>
+    left_join(tukey_fence_ub, by = join_by(col_name))
+}
+```
+
+# Outliers handling 
+
+```{r Flag outliers using Tukey fences for all sets, include=FALSE}
+outliers <-
+  proc_data_trans |>
+  select(colnames(num_data_trans)) |>
+  mutate(seq = seq(n())) |>
+  gather(col_name, value, -seq) |>
+  left_join(tukey_fences, by = join_by(col_name)) |>
+  mutate(is_outlier = value < tukey_lb | value > tukey_ub) |>
+  select(seq, col_name, is_outlier) |>
+  spread(col_name, is_outlier) |>
+  arrange(seq) |>
+  select(colnames(num_data_trans))
+```
+
+```{r Summarize outliers for train set, include=FALSE}
+outliers_sum <-
+  select(proc_data_trans, id) |>
+  cbind(outliers) |>
+  slice(match(train_id, id)) |>
+  select(-id) |>
+  summarize_all(mean, na.rm = TRUE) |>
+  gather(variable, p) |>
+  mutate(p = round(p * 100, 2))
+```
+
+```{r Show outliers summary, echo=FALSE}
+show_table(outliers_sum, "outliers_sum", "Outliers summary in train set.")
+```
+
+```{r Remove outliers by assigning values to missing, include=FALSE}
+num_proc_data_outlier_rm <-
+  proc_data_trans |>
+  select(colnames(num_data_trans))
+
+num_proc_data_outlier_rm[as.matrix(outliers)] <- NA
+```
+
+```{r Bind back outlier-removed data for all sets, include=FALSE}
+proc_data_outlier_rm <-
+  proc_data_trans |>
+  select(setdiff(colnames(proc_data_trans), colnames(num_data_trans))) |>
+  cbind(num_proc_data_outlier_rm) |>
+  select(colnames(proc_data_trans))
+```
+
+```{r Obtain train set from outlier-removed dataset, include=FALSE}
+train_data_outlier_rm <- slice(proc_data_outlier_rm, match(train_id, id))
+```
+
+```{r Add missingness indicators, include=FALSE}
+train_data_ms <-
+  train_data_outlier_rm |>
+  select_if(\(x) any(is.na(x))) |>
+  mutate_all(is.na) |>
+  mutate_all(as.numeric) |>
+  mutate_all(factor) |>
+  rename_all(paste0, "_ms")
+
+train_data_ms <-
+  train_data_outlier_rm |>
+  cbind(train_data_ms)
+```
+
+# Normality assessment and test
+
+```{r Assess normality by QQ plot, include=FALSE}
+normal_qq <- c("age", "height")
+```
+
+```{r State normal numerical variables by QQ plots, echo=FALSE}
+cat("Normal numerical variables by QQ plot: ",normal_qq)
+```
+
+```{r List non-normal variables by QQ plot, include=FALSE}
+non_normal_qq <- setdiff(colnames(num_data_trans), normal_qq)
+```
+
+```{r Conduct Shapiro-Wilk normality test, include=FALSE}
+sw_results <-
+  num_data_trans |>
+  select_at(non_normal_qq) |>
+  lapply(shapiro.test) |>
+  lapply(tidy) |>
+  imap(~ cbind(variable = .y, .x)) |>
+  reduce(rbind) |>
+  select(-method)
+```
+
+```{r Show Shapiro-Wilk normality test, echo=FALSE}
+show_table(sw_results, "sw_results", "Shapiro-Wilk normality test results.")
+```
+
+```{r List normal variables by Shapiro-Wilk normality test, include=FALSE}
+normal_sw <-
+  sw_results |>
+  filter(p.value > 0.05) |>
+  pull(variable)
+```
+
+```{r List normal variables by Shapiro-Wilk normality test, include=FALSE}
+non_normal_sw <- setdiff(non_normal_qq, normal_sw)
+```
+
+```{r Obtain normality for numerical columns, include=FALSE}
+normality_data <-
+  data.frame(col_name = colnames(num_data_trans)) |>
+  mutate(normal = col_name %in% c(normal_qq, normal_sw))
+```
+
+# Perfect/partial separation
+
+```{r Obtain scale for each column name except identifier, include=FALSE}
+scale_data <-
+    data.frame(
+     scale =
+       train_data_ms |>
+       select(-id) |>
+       sapply(class)
+   ) |>
+  rownames_to_column(var = "col_name")
+```
+
+```{r Identify all possible pair combinations, include=FALSE}
+comb_pair <-
+  combn(scale_data$col_name, 2) |>
+  t() |>
+  as.data.frame() |>
+  left_join(
+    rename(scale_data, V1 = col_name, scale_V1 = scale)
+    , by = join_by(V1)
+  ) |>
+  left_join(
+    rename(scale_data, V2 = col_name, scale_V2 = scale)
+    , by = join_by(V2)
+  )
+```
+
+```{r Create custom function to summarize variable pairs}
+pair_summary <- function(data, V1, V2){
+  result <-
+    data |>
+    group_by_at(c(V1, V2)) |>
+    summarize(n = n(), .groups = "drop") |>
+    `colnames<-`(c("value_V1", "value_V2", "n"))
+  
+  expand.grid(value_V1 = levels(data[[V1]]), value_V2 = levels(data[[V2]])) |>
+    left_join(result, by = join_by(value_V1, value_V2)) |>
+    mutate(n = ifelse(is.na(n), 0, n)) |>
+    mutate(V1 = !!V1, V2 = !!V2)
+}
+```
+
+```{r Perfect or partial separation data for categorical pairs, include=FALSE}
+ps_data <-
+  comb_pair |>
+  filter(scale_V1 == "factor" & scale_V2 == "factor") |>
+  select(V1, V2) |>
+  pmap(\(V1, V2) pair_summary(train_data_ms, V1, V2)) |>
+  reduce(rbind) |>
+  group_by(V1, V2) |>
+  summarize(ps = sum(n == 0) > 0, .groups = "drop")
+```
+
+# Correlation matrix
+
+```{r Obtain number of categories for categorical variables, include=FALSE}
+level_data <-
+  train_data_ms |>
+  select_if(is.factor) |>
+  summarize_all(\(x) length(intersect(levels(x), unique(x)))) |>
+  gather(col_name, level_n)
+```
+
+```{r Identify untestable pairs, include=FALSE}
+comb_pair_untestable <-
+  comb_pair |>
+  filter(str_remove_all(V1, "_ms$") == str_remove_all(V2, "_ms$"))
+```
+
+```{r Join combinations with normality-separation-level data, include=FALSE}
+comb_pair_normality_ps_level <-
+  comb_pair |>
+  anti_join(comb_pair_untestable, by = join_by(V1, V2, scale_V1, scale_V2)) |>
+  left_join(
+    rename(normality_data, V1 = col_name, normal_V1 = normal)
+    , by = join_by(V1)
+  ) |>
+  left_join(
+    rename(normality_data, V2 = col_name, normal_V2 = normal)
+    , by = join_by(V2)
+  ) |>
+  left_join(ps_data, by = join_by(V1, V2))  |>
+  left_join(
+    rename(level_data, V1 = col_name, level_V1 = level_n)
+    , by = join_by(V1)
+  ) |>
+  left_join(
+    rename(level_data, V2 = col_name, level_V2 = level_n)
+    , by = join_by(V2)
+  ) |>
+  mutate(
+    normal_V1 = ifelse(is.na(normal_V1), TRUE, normal_V1)
+    , normal_V2 = ifelse(is.na(normal_V2), TRUE, normal_V2)
+    , ps = ifelse(is.na(ps), FALSE, ps)
+    , level_V1 = ifelse(is.na(level_V1), 0, level_V1)
+    , level_V2 = ifelse(is.na(level_V2), 0, level_V2)
+  )
+```
+
+## Numerical-to-numerical pairs
+
+```{r Identify numerical-to-numerical pairs, include=FALSE}
+comb_pair_num_num <-
+  comb_pair_normality_ps_level |>
+  filter(scale_V1 == "numeric" & scale_V2 == "numeric")
+```
+
+```{r Identify normal-to-normal pairs, include=FALSE}
+comb_pair_normal_normal <-
+  comb_pair_num_num |>
+  filter(normal_V1 & normal_V2) |>
+  select(V1, V2)
+```
+
+```{r Identify non-normal-to-normal pairs, include=FALSE}
+comb_pair_non_normal_normal <-
+  comb_pair_num_num |>
+  select(V1, V2) |>
+  anti_join(comb_pair_normal_normal, join_by(V1, V2))
+```
+
+```{r Create custom function for correlation test}
+correlation_test <- function(data, V1, V2, method){
+  cor.test(train_data_ms[[V1]], train_data_ms[[V2]], method = "pearson") |>
+    tidy() |>
+    mutate(V1 = !!V1, V2 = !!V2) |>
+    select(V1, V2, everything())
+}
+```
+
+```{r Conduct Pearson correlation tests, include=FALSE}
+if(nrow(comb_pair_normal_normal) > 0){
+  cm_pearson <-
+    comb_pair_normal_normal |>
+    pmap(\(V1, V2) correlation_test(train_data_ms, V1, V2, "pearson")) |>
+    reduce(rbind)
+}
+```
+
+```{r Conduct Spearman correlation tests, include=FALSE}
+if(nrow(comb_pair_non_normal_normal) > 0){
+  cm_spearman <-
+    comb_pair_non_normal_normal |>
+    pmap(\(V1, V2) correlation_test(train_data_ms, V1, V2, "spearman")) |>
+    reduce(rbind)
+}
+```
+
+## Categorical-to-categorical pairs
+
+```{r Identify categorical-to-categorical pairs, include=FALSE}
+comb_pair_cat_cat <-
+  comb_pair_normality_ps_level |>
+  filter(scale_V1 == "factor" & scale_V2 == "factor")
+```
+
+```{r Identify pairs with separation, include=FALSE}
+comb_pair_ps <-
+  comb_pair_cat_cat |>
+  filter(ps)
+```
+
+```{r Identify separation pairs with >2-category V1, include=FALSE}
+comb_pair_ps_gt2_cat_V1 <-
+  comb_pair_ps |>
+  filter(level_V1 > 2) |>
+  select(V1, V2)
+```
+
+```{r Create custom function for Bayesian categorical regression}
+bayesian_cat_reg_fast <- function(data, V1, V2){
+  data2 <-
+    data |>
+    select(all_of(c(V1, V2))) |>
+    drop_na() |>
+    droplevels()
+
+  form <- reformulate(termlabels = V2, response = V1)
+
+  result<-
+    brm(
+      formula = form
+      , family = categorical()
+      , data = data2
+      , backend = "cmdstanr"
+      , chains = 1
+      , iter = 500
+      , warmup = 250
+      , refresh = 0
+      , silent = 2
+      , algorithm = "pathfinder"
+    )
+  
+  tidy(result) |>
+    mutate(V1 = !!V1, V2 = !!V2) |>
+    select(V1, V2, everything())
+}
+```
+
+```{r Conduct Bayesian categorical regression, include=FALSE}
+if(nrow(comb_pair_ps_gt2_cat_V1) > 0){
+  cm_bayesian_cat_reg <-
+    comb_pair_ps_gt2_cat_V1 |>
+    pmap(\(V1, V2) bayesian_cat_reg_fast(train_data_ms, V1, V2)) |>
+    reduce(rbind)
+}
+```
+
+```{r Identify separation pairs with 2-category V1, include=FALSE}
+comb_pair_ps_2_cat_V1 <-
+  comb_pair_ps |>
+  filter(level_V1 == 2) |>
+  select(V1, V2)
+```
+
+```{r Create custom function for Bayesian Bernoulli logistic regression}
+bayesian_bern_reg_fast <- function(data, V1, V2){
+  data2 <-
+    data |>
+    select(all_of(c(V1, V2))) |>
+    drop_na() |>
+    droplevels()
+
+  form <- reformulate(termlabels = V2, response = V1)
+
+  result <-
+    brm(
+      formula = form
+      , family = bernoulli()
+      , data = data2
+      , backend = "cmdstanr"
+      , chains = 1
+      , iter = 500
+      , warmup = 250
+      , refresh = 0
+      , silent = 2
+      , algorithm = "pathfinder"
+    )
+  
+  tidy(result) |>
+    mutate(V1 = !!V1, V2 = !!V2) |>
+    select(V1, V2, everything())
+}
+```
+
+```{r Conduct Bayesian Bernoulli logistic regression, include=FALSE}
+if(nrow(comb_pair_ps_2_cat_V1) > 0){
+  cm_bayesian_bern_reg <-
+    comb_pair_ps_2_cat_V1 |>
+    pmap(\(V1, V2) bayesian_bern_reg_fast(train_data_ms, V1, V2)) |>
+    reduce(rbind)
+}
+```
+
+```{r Identify pairs without separation, include=FALSE}
+comb_pair_non_ps <-
+  comb_pair_cat_cat |>
+  filter(!ps) |>
+  select(V1, V2)
+```
+
+```{r Create custom function for Fisher exact test}
+fisher_exact_test_fast <- function(data, V1, V2){
+  result <-
+    fisher.test(
+      data[[V1]], data[[V2]]
+      , workspace = 1e7, simulate.p.value = TRUE
+    )
+  
+  tidy(result) |>
+    select(p.value, method, alternative) |>
+    mutate(V1 = !!V1, V2 = !!V2) |>
+    select(V1, V2, everything())
+}
+```
+
+```{r Conduct Fisher exact test, include=FALSE}
+if(nrow(comb_pair_non_ps) > 0){
+  cm_fisher <-
+    comb_pair_non_ps |>
+    pmap(\(V1, V2) fisher_exact_test_fast(train_data_ms, V1, V2)) |>
+    reduce(rbind)
+}
+```
+
+## Mixed-scale pairs
+
+```{r Identify categorical-to-numerical pairs, include=FALSE}
+comb_pair_cat_num <-
+  comb_pair_normality_ps_level |>
+  filter(scale_V1 == "factor" & scale_V2 == "numeric")
+```
+
+```{r Identify >2-categorical-to-norm-numerical pairs, include=FALSE}
+comb_pair_cat_gt2_num_norm <-
+  comb_pair_cat_num |>
+  filter(level_V1 > 2) |>
+  filter(normal_V2) |>
+  select(V1, V2) |>
+  mutate(inv = FALSE)
+```
+
+```{r Identify >2-categorical-to-non-norm-numerical pairs, include=FALSE}
+comb_pair_cat_gt2_num_non_norm <-
+  comb_pair_cat_num |>
+  filter(level_V1 > 2) |>
+  filter(!normal_V2) |>
+  select(V1, V2) |>
+  mutate(inv = FALSE)
+```
+
+```{r Identify 2-categorical-to-norm-numerical pairs, include=FALSE}
+comb_pair_cat_2_num_norm <-
+  comb_pair_cat_num |>
+  filter(level_V1 == 2) |>
+  filter(normal_V2) |>
+  select(V1, V2) |>
+  mutate(inv = FALSE)
+```
+
+```{r Identify 2-categorical-to-non-norm-numerical pairs, include=FALSE}
+comb_pair_cat_2_num_non_norm <-
+  comb_pair_cat_num |>
+  filter(level_V1 == 2) |>
+  filter(!normal_V2) |>
+  select(V1, V2) |>
+  mutate(inv = FALSE)
+```
+
+```{r Identify numerical-to-categorical pairs, include=FALSE}
+comb_pair_num_cat <-
+  comb_pair_normality_ps_level |>
+  filter(scale_V1 == "numeric" & scale_V2 == "factor")
+```
+
+```{r Identify norm-numerical-to->2-categorical pairs, include=FALSE}
+comb_pair_num_norm_cat_gt2 <-
+  comb_pair_num_cat |>
+  filter(level_V2 > 2)  |>
+  filter(normal_V1) |>
+  select(V1 = V2, V2 = V1) |>
+  mutate(inv = TRUE)
+```
+
+```{r Identify non-norm-numerical-to->2-categorical pairs, include=FALSE}
+comb_pair_num_non_norm_cat_gt2 <-
+  comb_pair_num_cat |>
+  filter(level_V2 > 2)  |>
+  filter(!normal_V1) |>
+  select(V1 = V2, V2 = V1) |>
+  mutate(inv = TRUE)
+```
+
+```{r Identify norm-numerical-to-2-categorical pairs, include=FALSE}
+comb_pair_num_norm_cat_2 <-
+  comb_pair_num_cat |>
+  filter(level_V2 == 2)  |>
+  filter(normal_V1) |>
+  select(V1 = V2, V2 = V1) |>
+  mutate(inv = TRUE)
+```
+
+```{r Identify non-norm-numerical-to-2-categorical pairs, include=FALSE}
+comb_pair_num_non_norm_cat_2 <-
+  comb_pair_num_cat |>
+  filter(level_V2 == 2)  |>
+  filter(!normal_V1) |>
+  select(V1 = V2, V2 = V1) |>
+  mutate(inv = TRUE)
+```
+
+```{r Join >2-categorical and norm-numerical pairs, include=FALSE}
+comb_pair_mixed_gt2_norm <-
+  rbind(comb_pair_cat_gt2_num_norm, comb_pair_num_norm_cat_gt2)
+```
+
+```{r Create custom function for one-way ANOVA test}
+one_way_anova_test <- function(data, V1, V2, inv){
+  data <- data.frame(V1 = data[[V1]], V2 = data[[V2]])
+  
+  result <- aov(V2 ~ V1, data = data)
+  
+  result <-
+    tidy(result) |>
+    mutate(V1 = !!V1, V2 = !!V2)
+  
+  if(inv){
+    result |>
+      mutate(term = ifelse(term == "V1", "V2", term)) |>
+      select(V1 = V2, V2 = V1, everything())
+  }else{
+    result |>
+      select(V1, V2, everything())
+  }
+}
+```
+
+```{r Conduct one-way ANOVA test, include=FALSE}
+if(nrow(comb_pair_mixed_gt2_norm) > 0){
+  cm_one_way_anova <-
+    comb_pair_mixed_gt2_norm |>
+    pmap(\(V1, V2, inv) one_way_anova_test(train_data_ms, V1, V2, inv)) |>
+    reduce(rbind)
+}
+```
+
+```{r Join >2-categorical and non-norm-numerical pairs, include=FALSE}
+comb_pair_mixed_gt2_non_norm <-
+  rbind(comb_pair_cat_gt2_num_non_norm, comb_pair_num_non_norm_cat_gt2)
+```
+
+```{r Create custom function for Kruskal-Wallis test}
+kruskal_wallis_test <- function(data, V1, V2, inv){
+  V2_group_V1 <-
+    data[[V1]] |>
+    unique() |>
+    lapply(\(x) data[[V2]][data[[V1]] == x])
+  
+  result <- kruskal.test(V2_group_V1)
+  
+  result <-
+    tidy(result) |>
+    mutate(V1 = !!V1, V2 = !!V2)
+  
+  if(inv){
+    result |>
+      select(V1 = V2, V2 = V1, everything())
+  }else{
+    result |>
+      select(V1, V2, everything())
+  }
+}
+```
+
+```{r Conduct Kruskal-Wallis test, include=FALSE}
+if(nrow(comb_pair_mixed_gt2_non_norm) > 0){
+  cm_kruskal_wallis <-
+    comb_pair_mixed_gt2_non_norm |>
+    pmap(\(V1, V2, inv) kruskal_wallis_test(train_data_ms, V1, V2, inv)) |>
+    reduce(rbind)
+}
+```
+
+```{r Join 2-categorical and norm-numerical pairs, include=FALSE}
+comb_pair_mixed_2_norm <-
+  rbind(comb_pair_cat_2_num_norm, comb_pair_num_norm_cat_2)
+```
+
+```{r Create custom function for Welch two-sample t-test}
+welch_two_sample_t_test <- function(data, V1, V2, inv){
+  V2_group_V1_1 = data[[V2]][data[[V1]] == unique(data[[V1]])[1]]
+  V2_group_V1_2 = data[[V2]][data[[V1]] == unique(data[[V1]])[2]]
+  
+  result <-
+    try(
+      t.test(
+        V2_group_V1_1
+        , V2_group_V1_2
+        , alternative = "two.sided"
+        , paired = FALSE
+        , var.equal = FALSE
+      )
+    )
+  
+  if(is.character(result)){
+    result <-
+      data.frame(
+        estimate = as.numeric(NA)
+        , estimate1 = as.numeric(NA)
+        , estimate2 = as.numeric(NA)
+        , statistic = as.numeric(NA)
+        , p.value = as.numeric(NA)
+        , parameter = as.numeric(NA)
+        , conf.low = as.numeric(NA)
+        , conf.high = as.numeric(NA)
+        , method =
+          paste0(
+            "Welch Two Sample t-test ("
+            , paste0(result, collapse = ". ")
+            , ")"
+          )
+        , alternative = "two.sided"
+      )
+  }else{
+    result <- tidy(result)
+  }
+  
+  result <- mutate(result, V1 = !!V1, V2 = !!V2)
+  
+  if(inv){
+    result |>
+      select(V1 = V2, V2 = V1, everything())
+  }else{
+    result |>
+      select(V1, V2, everything())
+  }
+}
+```
+
+```{r Conduct Welch two-sample t-test, include=FALSE}
+if(nrow(comb_pair_mixed_2_norm) > 0){
+  cm_welch_two_sample_t <-
+    comb_pair_mixed_2_norm |>
+    pmap(\(V1, V2, inv) welch_two_sample_t_test(train_data_ms, V1, V2, inv)) |>
+    reduce(rbind)
+}
+```
+
+```{r Join 2-categorical and non-norm-numerical pairs, include=FALSE}
+comb_pair_mixed_2_non_norm <-
+  rbind(comb_pair_cat_2_num_non_norm, comb_pair_num_non_norm_cat_2)
+```
+
+```{r Create custom function for Wilcoxon rank-sum test}
+wilcoxon_rank_sum_test <- function(data, V1, V2, inv){
+  V2_group_V1_1 = data[[V2]][data[[V1]] == unique(data[[V1]])[1]]
+  V2_group_V1_2 = data[[V2]][data[[V1]] == unique(data[[V1]])[2]]
+  
+  result <-
+    try(
+      wilcox.test(
+        V2_group_V1_1
+        , V2_group_V1_2
+        , alternative = "two.sided"
+        , paired = FALSE
+      )
+    )
+  
+  if(is.character(result)){
+    result <-
+      data.frame(
+        statistic = as.numeric(NA)
+        , p.value = as.numeric(NA)
+        , method =
+          paste0(
+            "Welch Two Sample t-test ("
+            , paste0(result, collapse = ". ")
+            , ")"
+          )
+        , alternative = "two.sided"
+      )
+  }else{
+    result <- tidy(result)
+  }
+  
+  result <- mutate(result, V1 = !!V1, V2 = !!V2)
+  
+  if(inv){
+    result |>
+      select(V1 = V2, V2 = V1, everything())
+  }else{
+    result |>
+      select(V1, V2, everything())
+  }
+}
+```
+
+```{r Conduct Welch two-sample t-test, include=FALSE}
+if(nrow(comb_pair_mixed_2_non_norm) > 0){
+  cm_wilcoxon_rank_sum <-
+    comb_pair_mixed_2_non_norm |>
+    pmap(\(V1, V2, inv) wilcoxon_rank_sum_test(train_data_ms, V1, V2, inv)) |>
+    reduce(rbind)
+}
+```
+
+## Multiple testing correction
+
+```{r Create custom function to translate CI to p-value}
+translate_ci_to_p_value <- function(data, V1, V2){
+  data |>
+    filter(V1 == !!V1 & V2 == !!V2) |>
+    filter(!str_detect(term, "\\(Intercept\\)")) |>
+    filter(!(conf.low <= 0 & conf.high >= 0)) |>
+    summarize(n_sig = n()) |>
+    mutate(p.value = ifelse(n_sig > 0, 0, 1)) |>
+    filter(!is.na(p.value)) |>
+    mutate(V1 = V1, V2 = V2) |>
+    select(V1, V2, p.value)
+}
+```
+
+```{r Translate CI to p-value for Bayesian categorical regression, include=FALSE}
+cm_bayesian_cat_reg_p_value <-
+  cm_bayesian_cat_reg |>
+  select(V1, V2) |>
+  unique() |>
+  pmap(\(V1, V2) translate_ci_to_p_value(cm_bayesian_cat_reg, V1, V2)) |>
+  reduce(rbind) |>
+  mutate(method = "Bayesian categorical regression")
+```
+
+```{r Translate CI to p-value for Bayesian Bernoulli log reg, include=FALSE}
+cm_bayesian_bern_reg_p_value <-
+  cm_bayesian_bern_reg |>
+  select(V1, V2) |>
+  unique() |>
+  pmap(\(V1, V2) translate_ci_to_p_value(cm_bayesian_bern_reg, V1, V2)) |>
+  reduce(rbind) |>
+  mutate(method = "Bayesian Bernoulli logistic regression")
+```
+
+```{r Combine results from all correlation tests, include=FALSE}
+correlation_results <- list()
+
+if(nrow(comb_pair_untestable) > 0){
+  correlation_results <-
+    correlation_results |>
+    c(list(
+        untestable =
+          comb_pair_untestable |>
+          select(V1, V2) |>
+          mutate(p.value = as.numeric(NA), method = "None (untestable)")
+      )
+    )
+}
+
+if(nrow(comb_pair_normal_normal) > 0){
+  correlation_results <- c(correlation_results, list(pearson = cm_pearson))
+}
+
+if(nrow(comb_pair_non_normal_normal) > 0){
+  correlation_results <- c(correlation_results, list(spearman = cm_spearman))
+}
+
+if(nrow(comb_pair_ps_gt2_cat_V1) > 0){
+  correlation_results <-
+    c(correlation_results, list(bayesian_cat_reg = cm_bayesian_cat_reg_p_value))
+}
+
+if(nrow(comb_pair_ps_2_cat_V1) > 0){
+  correlation_results <-
+    correlation_results |>
+    c(list(bayesian_bern_reg = cm_bayesian_bern_reg_p_value))
+}
+
+if(nrow(comb_pair_non_ps) > 0){
+  correlation_results <- c(correlation_results, list(fisher = cm_fisher))
+}
+
+if(nrow(comb_pair_mixed_gt2_norm) > 0){
+  correlation_results <-
+    correlation_results |>
+    c(list(
+        one_way_anova =
+          cm_one_way_anova |>
+          filter(term != "Residuals") |>
+          mutate(method = "One-way ANOVA")
+      )
+    )
+}
+
+if(nrow(comb_pair_mixed_gt2_non_norm) > 0){
+  correlation_results <-
+    c(correlation_results, list(kruskal_wallis = cm_kruskal_wallis))
+}
+
+if(nrow(comb_pair_mixed_2_norm) > 0){
+  correlation_results <-
+    c(correlation_results, list(welch_two_sample_t = cm_welch_two_sample_t))
+}
+
+if(nrow(comb_pair_mixed_2_non_norm) > 0){
+  correlation_results <-
+    c(correlation_results, list(wilcoxon_rank_sum = cm_wilcoxon_rank_sum))
+}
+```
+
+```{r Combine p-values from all correlation tests, include=FALSE}
+correlation_p_values <-
+  correlation_results |>
+  lapply(select, V1, V2, p.value, method) |>
+  reduce(rbind)
+```
+
+```{r Compute FDRs from p-values by Benjamini-Hochberg method, include=FALSE}
+correlation_fdr <-
+  correlation_p_values |>
+  mutate(
+    FDR =
+      p.value |>
+      p.adjust(method = "BH")
+    , sig =
+      ifelse(is.na(FDR), "Not tested", ifelse(FDR <= 0.05, "Yes", "No")) |>
+      factor()
+    , method_no =
+      as.numeric(factor(method, unique(method))) |>
+      factor()
+  ) |>
+  select(sig, FDR, everything())
+```
+
+## Visualize correlation by significance
+
+```{r Create custom function to plot correlation matrix}
+cor_matrix_plotter <- function(data, triangle = "lower"){
+  vars <- union(as.character(data$V1), as.character(data$V2))
+
+  data_plot <-
+    data |>
+    mutate(
+      V1 = factor(V1, levels = vars),
+      V2 = factor(V2, levels = rev(vars)),
+      sig = factor(sig, levels = c("No", "Yes", "Not tested"))
+    ) |>
+    mutate(
+      x_id = as.integer(factor(V1, levels = vars)),
+      y_var = as.character(V2),
+      y_id = match(y_var, rev(vars))
+    )
+
+  if(triangle == "lower"){
+    data_plot <- data_plot |> filter(x_id + y_id <= length(vars) + 1)
+  }else if(triangle == "upper"){
+    data_plot <- data_plot |> filter(x_id + y_id >= length(vars) + 1)
+  }
+
+  ggplot(data_plot, aes(x = V1, y = V2, fill = sig)) +
+    geom_tile(color = "white") +
+    geom_text(aes(label = method_no), size = 3) +
+    scale_fill_manual(
+      values = c(
+        "No" = "grey80",
+        "Yes" = "steelblue",
+        "Not tested" = "grey40"
+      )
+    ) +
+    coord_equal() +
+    theme_minimal() +
+    theme(
+      panel.grid = element_blank(),
+      axis.title = element_blank(),
+      axis.text.x = element_text(angle = 45, hjust = 1)
+    ) +
+    labs(fill = "Significant")
+}
+```
+
+```{r Plot cor matrix, include=FALSE}
+correlation_matrix <-
+  comb_pair |>
+  select(V1, V2) |>
+  left_join(correlation_fdr, by = join_by(V1, V2)) |>
+  cor_matrix_plotter()
+```
+
+```{r Show corr matrix, echo=FALSE, fig.height=150/25.4, fig.width=190/25.4}
+correlation_matrix
+```
+
+```{r Caption corr matrix, echo=FALSE}
+show_figure_legend("correlation_matrix", "Correlation matrix.")
+```
+
+```{r Obtain correlation method numbers, include=FALSE}
+cm_method_no <-
+  correlation_matrix$data |>
+  select(no = method_no, method) |>
+  unique() |>
+  arrange(no)
+```
+
+```{r Show correlation method numbers, echo=FALSE}
+show_table(cm_method_no, "cm_method_no", "Correlation methods.")
+```
+
+# Missing value imputation
+
+```{r Create custom function to make MICE predictor matrix, include=FALSE}
+make_mice_pred_matrix <- function(
+  corr_data
+  , data_names = NULL
+  , sig_value = "Yes"
+  , ms_suffix = "_ms"
+){
+  # Variables only, exclude missingness indicators
+  if(is.null(data_names)){
+    data_names <-
+      union(
+        as.character(corr_data$V1)
+        , as.character(corr_data$V2)
+      )
+
+    data_names <-
+      data_names[!grepl(paste0(ms_suffix, "$"), data_names)] |>
+      sort()
+  }
+
+  pred_matrix <-
+    matrix(
+      0
+      , nrow = length(data_names)
+      , ncol = length(data_names)
+      , dimnames = list(data_names, data_names)
+    )
+
+  corr_yes <-
+    corr_data |>
+    filter(sig == sig_value) |>
+    select(V1, V2) |>
+    distinct()
+
+  for(v in data_names){
+    ms_v <- paste0(v, ms_suffix)
+
+    preds_from_v <-
+      corr_yes |>
+      filter(V1 == v) |>
+      pull(V2) |>
+      as.character()
+
+    preds_from_ms <-
+      corr_yes |>
+      filter(V1 == ms_v) |>
+      pull(V2) |>
+      as.character()
+
+    preds <-
+      c(preds_from_v, preds_from_ms) |>
+      unique()
+
+    preds <-
+      preds[
+        preds %in% data_names &
+        preds != v
+      ]
+
+    pred_matrix[v, preds] <- 1
+  }
+
+  pred_matrix
+}
+```
+
+```{r Create MICE predictor matrix}
+pred_matrix <-
+  correlation_matrix$data |>
+  make_mice_pred_matrix(colnames(select(train_data_outlier_rm, -id)))
+```
+
+```{r Fit and save MICE model, include=FALSE}
+imp_results <-
+  mice(
+    data = select(train_data_outlier_rm, -id)
+    , method = 'pmm'
+    , m = 10
+    , seed = seed
+    , predictorMatrix = pred_matrix
+    , print = FALSE
+  )
+
+saveRDS(imp_results, "data/imp_results.rds")
+```
+
+```{r Impute missing values for all set, include=FALSE}
+proc_data_imputed <-
+  imp_results |>
+  mice.mids(newdata = select(proc_data_outlier_rm, -id))|>
+  complete(1)
+
+proc_data_imputed <-
+  cbind(select(proc_data_outlier_rm, id), proc_data_imputed)
+```
 
 
 

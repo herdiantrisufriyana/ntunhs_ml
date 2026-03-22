@@ -1,0 +1,24 @@
+col_name,description,col_type
+id,Patient identifier,c
+pe,Preeclampsia (0=no; 1=yes),f
+iugr,Intrauterine growth restriction (0=no; 1=yes),f
+age,Maternal age (years),d
+weight,Pre-pregnancy weight (kg),d
+height,Maternal height (m),d
+bmi,BMI (kg/m²),d
+uta_ri_r,Art ut. D-resistance index,d
+uta_pi_r,Art ut. D-pulsatility index,d
+uta_psv_r,Art ut. D-peak systolic velocity,d
+uta_ri_l,Art ut. L-resistance index,d
+uta_pi_l,Art ut. L-pulsatility index,d
+uta_psv_l,Art ut. L-peak systolic velocity,d
+uta_ri,Art ut. mean-resistance index,d
+uta_pi,Art ut. mean-pulsatility index,d
+uta_psv,Art ut. mean-peak systolic velocity,d
+uta_bn,Art ut. bilateral notch,d
+ga,Gestational age at delivery (weeks),d
+parity,Parity,d
+bw,Birth weight (g),d
+sflt1,S-Flt1 (µg/L),d
+plgf,S-PLGF (1=100+ µg/L; 2=12-99 µg/L; 3=0-11 µg/L),f
+sflt1_plgf,sFLT/PLGF,d

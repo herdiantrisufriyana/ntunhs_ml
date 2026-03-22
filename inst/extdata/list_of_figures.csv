@@ -1,2 +1,5 @@
 variable
-figure_variable_name
+outcome_set_plot
+qq_plots
+qt_plots
+correlation_matrix
