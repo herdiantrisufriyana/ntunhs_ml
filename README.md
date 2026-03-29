@@ -8,17 +8,7 @@ You do NOT need to install R, RStudio, or Python manually. Everything runs insid
 
 # 1. First-Time Setup (Do Once Only)
 
-## Step 1 — Create a GitHub Account
-
-Go to:
-
-https://github.com
-
-Create a free account.
-
----
-
-## Step 2 — Install Git
+## Step 1 — Install Git
 
 Download:
 
@@ -32,7 +22,7 @@ git --version
 
 ---
 
-## Step 3 — Install Docker Desktop
+## Step 2 — Install Docker Desktop
 
 Download:
 
@@ -44,7 +34,7 @@ After installation:
 
 ---
 
-## Step 4 — Install VS Code
+## Step 3 — Install VS Code
 
 Download:
 
@@ -54,17 +44,7 @@ https://code.visualstudio.com/download
 
 # 2. Get the Course Repository
 
-## Step 1 — Fork the Repository
-
-Go to:
-
-https://github.com/herdiantrisufriyana/ntunhs_ml
-
-Click **Fork** to create your own copy.
-
----
-
-## Step 2 — Clone Your Fork
+## Step 1 — Clone the Repository
 
 Open VS Code.
 
@@ -72,31 +52,15 @@ Click:
 
 **Clone Git Repository**
 
-Change YOUR_GITHUB_USERNAME below your our own user name then copy and paste into the bar:
-
 ```
-https://github.com/YOUR_GITHUB_USERNAME/ntunhs_ml.git
+https://github.com/herdiantrisufriyana/ntunhs_ml.git
 ```
 
 Open the cloned folder.
 
 ---
 
-## Step 3 — Connect to Instructor Repository (For Updates)
-
-Open terminal in VS Code:
-
-Terminal → New Terminal
-
-Run:
-
-```bash
-git remote add upstream https://github.com/herdiantrisufriyana/ntunhs_ml.git
-```
-
----
-
-# 3. Build and Run the Environment
+# 2. Build and Run the Environment
 
 In the project root folder, run:
 
@@ -108,7 +72,7 @@ First build may take several minutes.
 
 ---
 
-# 4. Access the Applications
+# 3. Access the Applications
 
 ## RStudio (No Login Required)
 
@@ -132,7 +96,7 @@ http://localhost:8888
 
 ---
 
-# 5. Stop the Environment
+# 4. Stop the Environment
 
 ```bash
 docker compose down
@@ -140,23 +104,15 @@ docker compose down
 
 ---
 
-# 6. Update from Instructor
+# 5. Update from Instructor
 
-When the instructor updates the repository:
-
-```bash
-git fetch upstream
-git merge upstream/master
-docker compose up -d --build
-```
+When the instructor updates the repository, just start from step 1.
 
 ---
 
 # Important Rules
 
-- Do NOT upload large datasets (>25 MB) to GitHub.
-- Only push code.
-- Keep your data inside your local project folder.
+- Create backup of index.Rmd and other intermediate files that you edit by yourself.
 
 ---
 
