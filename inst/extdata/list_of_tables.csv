@@ -3,3 +3,8 @@ code_book
 outliers_sum
 sw_results
 cm_method_no
+cat_scale
+unireg_results
+multireg_results
+scm_results
+compare_multireg_scm_results

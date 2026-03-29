@@ -75,6 +75,7 @@ RUN R -e "BiocManager::install('mice', version='3.20', ask=FALSE, update=FALSE, 
 RUN R -e "BiocManager::install('doParallel', version='3.20', ask=FALSE, update=FALSE, force=TRUE)"
 
 # Install additional system dependencies, Python libraries and R packages, chronologically
+# Comment the following 5 lines if stan is not installable
 RUN R -e "remotes::install_github('stan-dev/cmdstanr', ref='v0.7.1', upgrade='never')"
 RUN mkdir -p /opt/cmdstan
 RUN R -e "cmdstanr::install_cmdstan(dir='/opt/cmdstan', version='2.33.1', overwrite=TRUE)"

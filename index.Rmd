@@ -33,12 +33,15 @@ library(ggpubr)
 library(pbapply)
 library(broom)
 library(brms)
-library(cmdstanr)
-library(broom.mixed)
+library(cmdstanr) # Comment this if stand is not installable
+extract <- tidyr::extract
+library(broom.mixed) # Comment this if stand is not installable
 library(mice)
 filter <- dplyr::filter
 cbind <- base::cbind
 rbind <- base::rbind
+library(igraph)
+library(ggnetwork)
 ```
 
 ```{r Load functions, include=FALSE}
@@ -507,7 +510,7 @@ normal_sw <-
   pull(variable)
 ```
 
-```{r List normal variables by Shapiro-Wilk normality test, include=FALSE}
+```{r List non-normal variables by Shapiro-Wilk normality test, include=FALSE}
 non_normal_sw <- setdiff(non_normal_qq, normal_sw)
 ```
 
@@ -521,7 +524,7 @@ normality_data <-
 
 ```{r Obtain scale for each column name except identifier, include=FALSE}
 scale_data <-
-    data.frame(
+  data.frame(
      scale =
        train_data_ms |>
        select(-id) |>
@@ -569,6 +572,10 @@ ps_data <-
   reduce(rbind) |>
   group_by(V1, V2) |>
   summarize(ps = sum(n == 0) > 0, .groups = "drop")
+
+# Temporarily add this if stan is not installable
+# |>
+#   mutate(ps = FALSE) 
 ```
 
 # Correlation matrix
@@ -1381,6 +1388,513 @@ proc_data_imputed <-
 proc_data_imputed <-
   cbind(select(proc_data_outlier_rm, id), proc_data_imputed)
 ```
+
+```{r Obtain train set from imputed dataset, include=FALSE}
+train_data_imputed <- slice(proc_data_imputed, match(train_id, id))
+```
+
+# Regression analysis
+
+```{r Scale of categorical predictors, include=FALSE}
+cat_scale <-
+  train_data_imputed |>
+  select_if(is.factor) |>
+  lapply(levels) |>
+  imap(~ data.frame(predictor = .y, level = .x)) |>
+  reduce(rbind)
+```
+
+```{r Show scale of categorical predictors, echo=FALSE}
+show_table(cat_scale, "cat_scale", "Scale of categorical predictors")
+```
+
+```{r Obtain possible term in the regression results, include=FALSE}
+term_data <-
+  train_data_imputed |>
+  imap(
+    ~ data.frame(
+        covariate = .y
+        , term =
+          c("(Intercept)"
+            , list(levels, \(x) "")[[ifelse(is.factor(.x), 1, 2)]](.x)
+          )
+      )
+  ) |>
+  reduce(rbind) |>
+  mutate(category = ifelse(term == "(Intercept)", "", term)) |>
+  mutate(term = ifelse(term == "(Intercept)", term, paste0(covariate, term)))
+```
+
+```{r Obtain candidate predictors, include=FALSE}
+predictor_candidates <-
+  train_data_imputed |>
+  select(-id, -outcome) |>
+  colnames()
+```
+
+## Univariate regression analysis
+
+```{r Determine formula for univariate regression analysis, include=FALSE}
+unireg_formula <-
+  predictor_candidates |>
+  lapply(c, "outcome") |>
+  lapply(rev) |>
+  lapply(paste0, collapse = " ~ ")
+
+unireg_formula <-
+  unireg_formula |>
+  `names<-`(unireg_formula) |>
+  lapply(as.formula)
+```
+
+```{r Conduct univariate regression analysis, include=FALSE}
+if(class(train_data_imputed$outcome) == "numeric"){
+  unireg <-
+    unireg_formula |>
+    lapply(lm, data = train_data_imputed)
+}else{
+  unireg <-
+    unireg_formula |>
+    lapply(glm, family = binomial(), data = train_data_imputed)
+}
+```
+
+```{r Create custom function to obtain covariate per formula}
+obtain_covariate_per_formula <-function(data){
+  data |>
+    imap(
+      ~ data.frame(
+          formula = .y
+          , outcome = as.character(.x)[2]
+          , predictor = str_split_fixed(as.character(.x)[3], " \\+ ", 2)[, 1]
+          , other = str_split_fixed(as.character(.x)[3], " \\+ ", 2)[, 2]
+          , covariate = as.character(.x)[3]
+        )
+    ) |>
+    reduce(rbind) |>
+    separate_rows(covariate, sep = " \\+ ")
+}
+```
+
+```{r Obtain covariate per formula for univariate regression, include=FALSE}
+unireg_covariate_data <- obtain_covariate_per_formula(unireg_formula)
+```
+
+```{r Create custom function to obtain reg results with covariate and term}
+obtain_reg_results <- function(data, covariate_data, term_data){
+  covariate_data <-
+    covariate_data |>
+    left_join(
+      term_data
+      , by = join_by(covariate)
+      , relationship = "many-to-many"
+    )
+  
+  data |>
+    lapply(tidy) |>
+    imap(~ mutate(.x, formula = .y)) |>
+    reduce(rbind) |>
+    left_join(covariate_data, by = join_by(formula, term))  |>
+    filter(
+      (term == "(Intercept)" & covariate == predictor)
+      | term != "(Intercept)"
+    )
+}
+```
+
+```{r Create custom function to compute estimate and 95% CI from regression}
+compute_est_reg <- function(data, OR = TRUE){
+  if(OR){
+    results <-
+      data |>
+      mutate(
+        OR = exp(estimate)
+        , LB = exp(estimate - std.error)
+        , UB = exp(estimate + std.error)
+        , estimate = OR
+      )
+  }else{
+    results <-
+      data |>
+      mutate(
+        LB = estimate - std.error
+        , UB = estimate + std.error
+      )
+  }
+  
+  results |>
+    select(outcome, predictor, term, category, p.value, estimate, LB, UB)
+}
+```
+
+```{r Compute OR and 95% CI for univariate regression analysis, include=FALSE}
+if(class(train_data_imputed$outcome) == "numeric"){
+  unireg_results <-
+    unireg |>
+    obtain_reg_results(unireg_covariate_data, term_data) |>
+    compute_est_reg(OR = FALSE)
+}else{
+  unireg_results <-
+    unireg |>
+    obtain_reg_results(unireg_covariate_data, term_data) |>
+    compute_est_reg()
+}
+```
+
+```{r Show OR and 95% CI for univariate regression analysis, echo=FALSE}
+unireg_results |>
+  show_table(
+  "unireg_results"
+  , "Univariate regression."
+  , digits = c(p.value = 3, estimate = 2, LB = 2, UB = 2)
+)
+```
+
+```{r Significant predictors by univariate regression analysis, include=FALSE}
+predictor_candidates_unireg <-
+  unireg_results |>
+  filter(term == predictor) |>
+  filter(p.value <= 0.05) |>
+  filter(LB > 1 | UB < 1) |>
+  pull(predictor) |>
+  unique()
+```
+
+## Collinearity by correlation matrix
+
+```{r Filter matrix if predictors are significant in uni reg, include=FALSE}
+predictor_candidates_cm <-
+  pred_matrix |>
+  as.data.frame() |>
+  rownames_to_column(var = "predictor") |>
+  select(-outcome) |>
+  slice(match(predictor_candidates_unireg, predictor))
+```
+
+```{r Identify sig cor between each candidate predictor to the others, include=FALSE}
+predictor_candidates_cm_sig <-
+  predictor_candidates_cm |>
+  gather(other, correlation, -predictor) |>
+  filter(correlation == 1)
+```
+
+```{r List others that correlate with each CP and outcome , include=FALSE}
+predictor_candidates_stat_cf <-
+  predictor_candidates_cm_sig |>
+  group_by(predictor) |>
+  summarise(values = list(other)) |>
+  deframe() |>
+  lapply(intersect, predictor_candidates_unireg)
+```
+
+## Multivariate regression analysis
+
+```{r Determine formula for multivariate regression analysis, include=FALSE}
+multireg_formula <-
+  unireg_formula |>
+  lapply(as.character) |>
+  imap(~ c(.x, predictor_candidates_stat_cf[[.x[3]]])) |>
+  imap(~ paste0("outcome ~ ", paste0(.x[-1:-2], collapse = " + ")))
+
+multireg_formula <-
+  multireg_formula |>
+  `names<-`(multireg_formula) |>
+  lapply(as.formula)
+```
+
+```{r Conduct multivariate regression analysis, include=FALSE}
+if(class(train_data_imputed$outcome) == "numeric"){
+  multireg <-
+    multireg_formula |>
+    lapply(lm, data = train_data_imputed)
+}else{
+  multireg <-
+    multireg_formula |>
+    lapply(glm, family = binomial(), data = train_data_imputed)
+}
+```
+
+```{r Obtain covariate per formula for multivariate regression, include=FALSE}
+multireg_covariate_data <- obtain_covariate_per_formula(multireg_formula)
+```
+
+```{r Compute OR and 95% CI for multivariate regression analysis, include=FALSE}
+if(class(train_data_imputed$outcome) == "numeric"){
+  multireg_results <-
+    multireg |>
+    obtain_reg_results(multireg_covariate_data, term_data) |>
+    compute_est_reg(OR = FALSE)
+}else{
+  multireg_results <-
+    multireg |>
+    obtain_reg_results(multireg_covariate_data, term_data) |>
+    compute_est_reg()
+}
+```
+
+```{r Show OR and 95% CI for multivariate regression analysis, echo=FALSE}
+multireg_results |>
+  show_table(
+  "multireg_results"
+  , "Multivariate regression."
+  , digits = c(p.value = 3, estimate = 2, LB = 2, UB = 2)
+)
+```
+
+```{r Significant predictors by multivariate regression analysis, include=FALSE}
+predictor_candidates_multireg <-
+  multireg_results |>
+  filter(term == predictor) |>
+  filter(p.value <= 0.05) |>
+  filter(LB > 1 | UB < 1) |>
+  pull(predictor) |>
+  unique()
+```
+
+## Structural causal modeling (SCM)
+
+```{r Select some of existing formulas that has >1 covariates, include=FALSE}
+formula_multi_covariates <-
+  multireg_covariate_data |>
+  group_by(formula) |>
+  filter(length(covariate) >1) |>
+  ungroup()
+```
+
+```{r Pair outcome with each covariate, include=FALSE}
+mc_outcome_covariate <-
+  formula_multi_covariates |>
+  select(V1 = outcome, V2 = covariate) |>
+  unique()
+```
+
+```{r Pair each candidate predictor with other covariate, include=FALSE}
+mc_predictor_other <-
+  formula_multi_covariates |>
+  select(V1 = predictor, V2 = covariate) |>
+  filter(V1 != V2) |>
+  unique()
+```
+
+```{r Bind the selected pairs of variables, include=FALSE}
+mc_pair_undirected <-
+  rbind(mc_outcome_covariate, mc_predictor_other) |>
+  mutate(from = NA)
+```
+
+```{r Write the bound-selected pairs to CSV, include=FALSE}
+write_csv(mc_pair_undirected, "inst/extdata/mc_pair_undirected.csv")
+```
+
+```{r Determine causal direction per pair, include=FALSE}
+mc_pair_directed <-
+  read_csv("inst/extdata/mc_pair_directed.csv", show_col_types = FALSE)
+```
+
+```{r Obtain causal diagram data, include=FALSE}
+causal_diagram_data <-
+  mc_pair_directed |>
+  mutate(to = ifelse(from == 1, 2, 1)) |>
+  mutate(
+    from = ifelse(from == 1, V1, V2)
+    , to = ifelse(to == 1, V1, V2)
+  ) |>
+  select(from, to)
+```
+
+```{r Create custom function to plot causal diagram}
+causal_diagram_plotter <- function(data, padding = 0.1, title = NULL){
+  canvas_size <-
+    data |>
+    select(x, y, xend, yend) |>
+    gather() |>
+    summarize(min_value = min(value), max_value = max(value)) |>
+    mutate(
+      min_value = min_value - padding * (max_value - min_value)
+      , max_value = max_value + padding * (max_value - min_value)
+    ) |>
+    gather() |>
+    select(x = value, y = value)
+  
+  data |>
+    ggplot(aes(x, y)) +
+    geom_blank(data = canvas_size) +
+    geom_nodes(aes(color = voi), size = 6) +
+    geom_edges(
+      aes(xend = xend, yend = yend, color = voi)
+      , arrow = arrow(length = unit(6, "pt"), type = "closed"), curvature = 0.1
+    ) +
+    geom_label(
+      aes(color = voi, label = name)
+      , hjust = -0.2, vjust = 1.2, show.legend = FALSE
+    ) +
+    scale_color_discrete("Variable of\ninterest") +
+    theme_blank() +
+    ggtitle(title)
+}
+```
+
+```{r Obtain causal diagram per formula, include=FALSE}
+cd_formula <-
+  formula_multi_covariates |>
+  group_by(formula) |>
+  summarise(values = list(covariate)) |>
+  deframe() |>
+  imap(
+    ~ causal_diagram_data |>
+      filter(from %in% c("outcome", .x) & to %in% c("outcome", .x))
+  )
+
+cd_graph <- lapply(cd_formula, graph_from_data_frame)
+
+set.seed(seed)
+cd_layout <- lapply(cd_graph, layout_as_tree, circular = TRUE, root = "outcome")
+
+cd_plot_data <-
+  cd_graph |>
+  imap(~ ggnetwork(.x, cd_layout[[.y]])) |>
+  imap(~ mutate(.x, pair = str_split_fixed(.y, " \\+ ", 2)[[1]])) |>
+  lapply(separate, pair, c("outcome", "predictor"), sep = " ~ ") |>
+  lapply(
+    mutate
+    , voi =
+      case_when(
+        name == outcome ~ "Outcome"
+        , name == predictor ~ "Predictor"
+        , TRUE ~ "Other"
+      )
+  )
+
+cd_plot <-
+  cd_plot_data |>
+  imap(~ causal_diagram_plotter(.x, title = which(names(cd_plot_data) == .y)))
+
+cd_plot <- ggarrange(plotlist = cd_plot, nrow = length(cd_plot))
+```
+
+```{r Create custom function to remove variables from formula}
+remove_from_formula <- function(formula, variables){
+  formula <- as.character(formula)
+  
+  formula <-
+    formula |>
+    lapply(str_split_1, " \\+ ") |>
+    lapply(setdiff, variables) |>
+    lapply(paste0, collapse = " + ") |>
+    reduce(c)
+  
+  as.formula(paste0("outcome ~ ", formula[3]))
+}
+```
+
+```{r CD >1 covariates, echo=FALSE, fig.height=560/25.4, fig.width=190/25.4}
+cd_plot
+```
+
+```{r Caption CD >1 covariates, echo=FALSE}
+show_figure_legend("cd_plot", "Causal diagram with >1 covariates.")
+```
+
+```{r Identify colliders, include=FALSE}
+colliders <-read_csv("inst/extdata/colliders.csv", show_col_types = FALSE)
+```
+
+```{r Remove colliders from formula, include=FALSE}
+removed_from_formula <- lapply(names(cd_plot_data), as.formula)
+
+removed_from_formula <-
+  colliders |>
+  group_by(no) |>
+  summarise(values = list(variable)) |>
+  deframe() |>
+  imap(~ remove_from_formula(removed_from_formula[[as.numeric(.y)]], .x)) |>
+  `names<-`(names(cd_plot_data))
+```
+
+```{r Determine formula for multivariate regression analysis, include=FALSE}
+scm_formula <- setdiff(names(multireg_formula), names(removed_from_formula))
+
+scm_formula <-
+  multireg_formula[scm_formula] |>
+  c(removed_from_formula)
+
+scm_formula <- scm_formula[names(multireg_formula)]
+
+scm_formula <- `names<-`(scm_formula, scm_formula)
+```
+
+```{r Conduct SCM-multivariate regression analysis, include=FALSE}
+if(class(train_data_imputed$outcome) == "numeric"){
+  scm <-
+    scm_formula |>
+    lapply(lm, data = train_data_imputed)
+}else{
+  scm <-
+    scm_formula |>
+    lapply(glm, family = binomial(), data = train_data_imputed)
+}
+```
+
+```{r Obtain covariate per formula for SCM-multivariate regression, include=FALSE}
+scm_covariate_data <- obtain_covariate_per_formula(scm_formula)
+```
+
+```{r Compute OR and 95% CI for SCM-multivar regression analysis, include=FALSE}
+if(class(train_data_imputed$outcome) == "numeric"){
+  scm_results <-
+    scm |>
+    obtain_reg_results(scm_covariate_data, term_data) |>
+    compute_est_reg(OR = FALSE)
+}else{
+  scm_results <-
+    scm |>
+    obtain_reg_results(scm_covariate_data, term_data) |>
+    compute_est_reg()
+}
+```
+
+```{r Show OR and 95% CI for SCM-multivar regression analysis, echo=FALSE}
+scm_results |>
+  show_table(
+  "scm_results"
+  , "Structural causal modeling using multivariate regression."
+  , digits = c(p.value = 3, estimate = 2, LB = 2, UB = 2)
+)
+```
+
+```{r Significant predictors by SCM-multivar regression analysis, include=FALSE}
+predictor_candidates_scm <-
+  scm_results |>
+  filter(term == predictor) |>
+  filter(p.value <= 0.05) |>
+  filter(LB > 1 | UB < 1) |>
+  pull(predictor) |>
+  unique()
+```
+
+```{r Compared multivariate and SCM-multivariate regrssion results, include=FALSE}
+compare_multireg_scm_results <-
+  list(no = multireg_results, yes = scm_results) |>
+  lapply(
+    filter
+    , predictor %in% c(predictor_candidates_multireg, predictor_candidates_scm)
+  ) |>
+  lapply(filter, term == predictor) |>
+  imap(~ mutate(.x, SCM = .y)) |>
+  reduce(rbind) |>
+  arrange(outcome, predictor, term, category, SCM) |>
+  select(outcome, predictor, term, category, SCM, everything())
+```
+
+```{r Show multivariate and SCM-multivariate regrssion results, echo=FALSE}
+compare_multireg_scm_results |>
+  show_table(
+    "compare_multireg_scm_results"
+    , "Compare multivariate regression without and with SCM."
+    , digits = c(p.value = 3, estimate = 5, LB = 5, UB = 5)
+  )
+```
+
 
 
 
