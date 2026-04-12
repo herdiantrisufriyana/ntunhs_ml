@@ -4,3 +4,10 @@ qq_plots
 qt_plots
 correlation_matrix
 cd_plot
+scree_plotter(pca_fit_var)
+pc_score_plotter(pca_fit_var)
+pc_loading_plotter(pca_fit_var)
+k_selection_plot
+pc_hclust_plot
+cl_score_plot
+ontology_plot

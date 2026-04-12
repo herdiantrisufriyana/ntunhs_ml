@@ -42,6 +42,7 @@ cbind <- base::cbind
 rbind <- base::rbind
 library(igraph)
 library(ggnetwork)
+library(cluster)
 ```
 
 ```{r Load functions, include=FALSE}
@@ -1547,7 +1548,7 @@ unireg_results |>
   "unireg_results"
   , "Univariate regression."
   , digits = c(p.value = 3, estimate = 2, LB = 2, UB = 2)
-)
+)  
 ```
 
 ```{r Significant predictors by univariate regression analysis, include=FALSE}
@@ -1893,6 +1894,584 @@ compare_multireg_scm_results |>
     , "Compare multivariate regression without and with SCM."
     , digits = c(p.value = 3, estimate = 5, LB = 5, UB = 5)
   )
+```
+
+# Dimensional reduction
+
+```{r Create custom function to numerize categorical variables-2, include=FALSE}
+numerize_cat_var <- function(x){
+ as.numeric(x) - 1 
+}
+```
+
+```{r Select categorical variables, include=FALSE}
+cat_data <- select_if(train_data, is.factor)
+```
+
+```{r Prepare cluster data-2, include=FALSE}
+cluster_data <- train_data
+
+if(ncol(cat_data) > 0){
+  cluster_data <-
+    cluster_data |>
+    mutate_if(is.factor, numerize_cat_var) # Numerize categorical variables
+}
+
+cluster_data <-
+  cluster_data |>
+  column_to_rownames(var = "id") |>
+  na.omit() # Remove rows with NA in any columns
+```
+
+## PCA
+
+```{r Select variables for PCA}
+# All variables except variable of interest
+pca_var <- setdiff(colnames(cluster_data), "outcome")
+
+# Selected variables (remove hash tag for commenting codes below)
+# pca_var <- c("uta_ri", "uta_pi", "uta_pi", "sflt1", "plgf")
+```
+
+```{r Conduct PCA, include=FALSE}
+pca_fit_var <-
+  cluster_data |>
+  select_at(pca_var) |>
+  prcomp(scale. = TRUE) # Data standardization
+```
+
+```{r Create custom function to make scree plot}
+scree_plotter <- function(pca){
+  # Extract variance explained
+  var_explained <-
+    pca$sdev^2 / sum(pca$sdev^2)
+
+  data <-
+    data.frame(
+      pc = seq_along(var_explained)
+      , var = var_explained
+    )
+
+  ggplot(data, aes(x = pc, y = var)) +
+    geom_line() +
+    geom_point() +
+    scale_x_continuous(breaks = data$pc) +
+    xlab("Principal Component") +
+    ylab("Proportion of Variance Explained") +
+    theme(
+      axis.title = element_text(size = 10)
+    )
+}
+```
+
+```{r Show scree plot, echo=FALSE, fig.height=75/25.4, fig.width=190/25.4}
+scree_plotter(pca_fit_var)
+```
+
+```{r Caption scree plot, echo=FALSE}
+show_figure_legend("scree_plotter(pca_fit_var)", "Scree plot.")
+```
+
+```{r Create custom function to make score plot with optional grouping}
+pc_score_plotter <- function(
+  pca
+  , pc_x = 1
+  , pc_y = 2
+  , group = NULL
+){
+  # Extract scores
+  scores <-
+    as.data.frame(pca$x)
+
+  # Prepare data
+  data <-
+    scores |>
+    mutate(
+      group = if(is.null(group)) "All" else as.factor(group)
+    )
+
+  # Variance explained for labels
+  var_explained <-
+    pca$sdev^2 / sum(pca$sdev^2)
+
+  xlab <-
+    paste0(
+      "PC", pc_x, " ("
+      , round(var_explained[pc_x] * 100, 1)
+      , "%)"
+    )
+
+  ylab <-
+    paste0(
+      "PC", pc_y, " ("
+      , round(var_explained[pc_y] * 100, 1)
+      , "%)"
+    )
+
+  ggplot(data, aes(
+    x = .data[[paste0("PC", pc_x)]]
+    , y = .data[[paste0("PC", pc_y)]]
+    , color = group
+  )) +
+    geom_point(size = 3) +
+    xlab(xlab) +
+    ylab(ylab) +
+    theme(
+      axis.title = element_text(size = 10)
+      , legend.title = element_blank()
+    )
+}
+```
+
+```{r Show score plot, echo=FALSE, fig.height=108/25.4, fig.width=190/25.4}
+pc_score_plotter(pca_fit_var)
+```
+
+```{r Caption score plot, echo=FALSE}
+show_figure_legend("pc_score_plotter(pca_fit_var)", "Score plot.")
+```
+
+```{r Create custom function to make loading plot}
+pc_loading_plotter <- function(
+  pca
+  , pc_x = 1
+  , pc_y = 2
+  , labels = TRUE
+){
+  # Extract loadings
+  loadings <-
+    as.data.frame(pca$rotation)
+
+  loadings$variable <-
+    rownames(loadings)
+
+  # Variance explained
+  var_explained <-
+    pca$sdev^2 / sum(pca$sdev^2)
+
+  xlab <-
+    paste0(
+      "PC", pc_x, " ("
+      , round(var_explained[pc_x] * 100, 1)
+      , "%)"
+    )
+
+  ylab <-
+    paste0(
+      "PC", pc_y, " ("
+      , round(var_explained[pc_y] * 100, 1)
+      , "%)"
+    )
+
+  p <-
+    ggplot(loadings) +
+    geom_hline(yintercept = 0, linetype = "dashed") +
+    geom_vline(xintercept = 0, linetype = "dashed") +
+
+    # Arrows
+    geom_segment(
+      aes(
+        x = 0, y = 0
+        , xend = .data[[paste0("PC", pc_x)]]
+        , yend = .data[[paste0("PC", pc_y)]]
+      )
+      , arrow = arrow(length = unit(0.2, "cm"), type = "closed")
+    ) +
+
+    xlab(xlab) +
+    ylab(ylab) +
+    theme(
+      axis.title = element_text(size = 10)
+    )
+
+  if(labels){
+    p <-
+      p +
+      geom_text(
+        aes(
+          x = .data[[paste0("PC", pc_x)]]
+          , y = .data[[paste0("PC", pc_y)]]
+          , label = variable
+        )
+        , vjust = -0.5
+        , size = 3
+      )
+  }
+
+  return(p)
+}
+```
+
+```{r Show loading plot, echo=FALSE, fig.height=190/25.4, fig.width=190/25.4}
+pc_loading_plotter(pca_fit_var)
+```
+
+```{r Caption loading plot, echo=FALSE}
+show_figure_legend("pc_loading_plotter(pca_fit_var)", "Loading plot.")
+```
+
+```{r Prepare PC1 and PC2 for clustering analysis, include=FALSE}
+pc12_var_data <-
+  pca_fit_var$x |>
+  as.data.frame() |>
+  select(PC1, PC2)
+```
+
+## Clustering analysis
+
+```{r Choose between hierarhical and k-means clustering}
+which_clustering <- c(`1` = "hierarchical", `2` = "k-means")[1]
+```
+
+```{r Choose clustering parameters}
+# For hierarchical clustering
+hclust_distance_method <-
+  c(
+    `1` = "gower"
+    , `2` = "euclidean"
+    , `3` = "binary"
+    , `4` = "canberra"
+    , `5` = "manhattan"
+    , `6` = "maximum"
+    , `7` = "minkowski"
+  )[1]
+
+hclust_agglomeration_method <-
+  c(
+    `1` = "average"
+    , `2` = "ward.D2"
+    , `3` = "complete"
+    , `4` = "single"
+  )[1]
+
+h_cluster_n <- 4 # Change later after assessing the plot
+
+# For k-means clustering
+k_cluster <- NULL  # If 2 clusters are expected, change to k_cluster <- 2
+
+kmeans_k_method <-
+  c(`1` = "elbow"
+    , `2` = "silhouette"
+  )[1]
+
+kmeans_k_range <- 2:10
+
+silhouette_distance_method <-
+  c(
+    `1` = "gower"
+    , `2` = "euclidean"
+    , `3` = "binary"
+    , `4` = "canberra"
+    , `5` = "manhattan"
+    , `6` = "maximum"
+    , `7` = "minkowski"
+  )[1]
+```
+
+```{r Create a function to compute obtain WCSS}
+kmeans_wcss <- \(k, data){
+  set.seed(seed)
+  fit <- kmeans(x = data, centers = k)
+  
+  data.frame(k = k, metric = fit$tot.withinss)
+}
+```
+
+```{r Create a function to compute obtain silhouette score}
+kmeans_silhouette_score <- \(k, data){
+  set.seed(seed)
+  fit <- kmeans(x = data, centers = k)
+  
+  d <-
+    if(silhouette_distance_method == "gower"){
+      cluster::daisy(data, metric = "gower")
+    }else{
+      dist(data, method = silhouette_distance_method)
+    }
+
+  sil <- silhouette(fit$cluster, d)
+
+  data.frame(k = k, metric = mean(sil[, "sil_width"]))
+}
+```
+
+```{r Create a function to plot elbow or silhouette method}
+kmeans_k_plotter <- function(
+  data
+  , k_range = 2:10
+  , method = c("elbow", "silhouette")
+){
+  method <- match.arg(method)
+
+  if(method == "elbow"){
+    metric_data <- map_dfr(k_range, \(k) kmeans_wcss(k, data))
+
+    ylab <- "Total Within-Cluster Sum of Squares"
+  }else{
+    metric_data <- map_dfr(k_range, \(k) kmeans_silhouette_score(k, data))
+
+    ylab <- "Average Silhouette Width"
+  }
+
+  ggplot(metric_data, aes(x = k, y = metric)) +
+    geom_line() +
+    geom_point() +
+    scale_x_continuous(breaks = k_range) +
+    xlab("Number of Clusters (K)") +
+    ylab(ylab) +
+    theme(
+      axis.title = element_text(size = 10)
+    )
+}
+```
+
+```{r Plot to choose k for k-means clustering if needed, include=FALSE}
+if(which_clustering == "k-means" & is.null(k_cluster)){
+  k_selection_plot <-
+    kmeans_k_plotter(
+      data = pc12_var_data
+      , k_range = kmeans_k_range
+      , method = kmeans_k_method
+    )
+}
+```
+
+```{r Show k plot, echo=FALSE, fig.height=90/25.4, fig.width=190/25.4}
+if(which_clustering == "k-means" & is.null(k_cluster)){
+  k_selection_plot
+}
+```
+
+```{r Caption k plot, echo=FALSE}
+if(which_clustering == "k-means" & is.null(k_cluster)){
+  show_figure_legend("k_selection_plot", "k plot.")
+}
+```
+
+```{r Conduct clustering analysis, include=FALSE}
+if(which_clustering == "hierarchical"){
+  if(hclust_distance_method == "gower"){
+    clustering_fit <-
+      pc12_var_data |>
+      daisy(metric = "gower") |>
+      hclust(method = hclust_agglomeration_method)
+  }else{
+    clustering_fit <-
+      pc12_var_data |>
+      dist(method = hclust_distance_method) |>
+      hclust(method = hclust_agglomeration_method)
+  }
+}else if(which_clustering == "k-means"){
+  set.seed(seed)
+  clustering_fit <- kmeans(pc12_var_data, k_cluster)
+}
+```
+
+```{r Obtain clusters, include=FALSE}
+if(which_clustering == "hierarchical"){
+  cluster_group <- cutree(clustering_fit, k = h_cluster_n)
+}else{
+  cluster_group <- clustering_fit$cluster
+}
+```
+
+```{r Create custom function for PC-hclust plot}
+pc_hclust_plotter <- function(hclust_fit, h_cluster){
+  h_cluster <- factor(h_cluster)
+  cols <- as.integer(h_cluster)
+
+  plot(hclust_fit, cex = 0.6)
+
+  labels <- hclust_fit$labels
+  order <- hclust_fit$order
+  usr <- par("usr")
+
+  y1 <- usr[3] - 0.02 * diff(usr[3:4])
+  y2 <- usr[3] - 0.06 * diff(usr[3:4])
+
+  text(
+    x = seq_along(order)
+    , y = y2
+    , labels = h_cluster[order]
+    , srt = 90
+    , adj = 1
+    , xpd = NA
+    , cex = 0.6
+    , col = cols[order]
+  )
+}
+```
+
+```{r Show PC-hcl plot, echo=FALSE, fig.height=190/25.4, fig.width=190/25.4}
+if(which_clustering == "hierarchical"){
+  pc_hclust_plot <- pc_hclust_plotter(clustering_fit, cluster_group)
+}
+```
+
+```{r Caption PC-hcl plot, echo=FALSE}
+if(which_clustering == "hierarchical"){
+  show_figure_legend("pc_hclust_plot", "PC-hclust plot.")
+}
+```
+
+```{r Create cl-score plot, include=FALSE}
+cl_score_plot <- pc_score_plotter(pca_fit_var, group = cluster_group)
+```
+
+```{r Show cl-score plot, echo=FALSE, fig.height=108/25.4, fig.width=190/25.4}
+cl_score_plot
+```
+
+```{r Caption cl-score plot, echo=FALSE}
+show_figure_legend("cl_score_plot", "Clustered score plot.")
+```
+
+## Ontology inference
+
+```{r Transpose cluster data for ontology, include=FALSE}
+ontology_data <-
+  cluster_data |>
+  select_at(pca_var) |>
+  mutate_all(scale) |> # Data standardization
+  t() |>
+  as.data.frame()
+```
+
+```{r Conduct clustering analysis for ontology inference, include=FALSE}
+if(hclust_distance_method == "gower"){
+  ontology_fit <-
+    ontology_data |>
+    daisy(metric = "gower") |>
+    hclust(method = hclust_agglomeration_method)
+}else{
+  ontology_fit <-
+    ontology_data |>
+    dist(method = hclust_distance_method) |>
+    hclust(method = hclust_agglomeration_method)
+}
+```
+
+```{r Choose height to group predictors }
+ontology_height <- 0.18
+```
+
+```{r Obtain ontologies, include=FALSE}
+ontology_group <- cutree(ontology_fit, h = ontology_height)
+```
+
+```{r Show ontoloy plot, echo=FALSE, fig.height=100/25.4, fig.width=190/25.4}
+ontology_plot <- pc_hclust_plotter(ontology_fit, ontology_group)
+```
+
+```{r Caption ontology plot, echo=FALSE}
+show_figure_legend("ontology_plot", "Ontology plot.")
+```
+
+```{r Create ontology group dataframe, include=FALSE}
+ontology_group_df <-
+  data.frame(ontology = sort(ontology_group)) |>
+  rownames_to_column(var = "predictor") |>
+  select(ontology, everything())
+```
+
+```{r Show ontology group dataframe, echo=FALSE}
+show_table(ontology_group_df, "ontology_group_df", "Ontology group.")
+```
+
+## Ontology-wise PCA
+
+```{r Determine predictors per ontology, include=FALSE}
+ontology_predictors <-
+  ontology_group_df |>
+  group_split(ontology) |>
+  lapply(pull, predictor)
+```
+
+```{r Conduct PCA per ontology, include=FALSE}
+pca_fit_ontology <-
+  ontology_predictors |>
+  imap(~ select_at(cluster_data, .x)) |>
+  lapply(prcomp, scale. = TRUE) # Data standardization
+```
+
+```{r Obtain PVE of PC1 from scree plot per ontology, include=FALSE}
+ontology_pve <-
+  pca_fit_ontology |>
+  lapply(scree_plotter) |>
+  imap(~ filter(.x$data, pc == 1)$var) |>
+  unlist()
+
+ontology_pve <-
+  data.frame(ontology = seq(length(ontology_pve)), pve_pc1 = ontology_pve)
+```
+
+```{r Show PVE of PC1 from scree plot per ontology, echo=FALSE}
+show_table(ontology_pve, "ontology_pve", "Ontology PVEs of PC1s.")
+```
+
+```{r}
+combined_var <-
+  ontology_group_df |>
+  group_by(ontology) |>
+  summarize(predictor_n = n()) |>
+  filter(predictor_n > 1) |>
+  left_join(ontology_pve, by = join_by(ontology)) |>
+  filter(pve_pc1 >= 0.85) |>
+  left_join(ontology_group_df, by = join_by(ontology)) |>
+  group_split(ontology)
+
+combined_var_ontology <-
+  combined_var |>
+  lapply(pull, ontology) |>
+  sapply(unique)
+
+combined_var <-
+  combined_var |>
+  lapply(pull, predictor) |>
+  `names<-`(combined_var_ontology)
+
+```
+
+```{r Prepare data for all sets to combine varibles, include=FALSE}
+comb_var_data <- proc_data_imputed
+
+if(ncol(cat_data) > 0){
+  comb_var_data <-
+    comb_var_data |>
+    mutate_if(is.factor, numerize_cat_var) # Numerize categorical variables
+}
+
+comb_var_data <-
+  comb_var_data |>
+  column_to_rownames(var = "id") |>
+  na.omit() # Remove rows with NA in any columns
+```
+
+```{r Create custom function for combining variables to ontology}
+combine_var_to_ontology <- function(data, ontology_id, var_comb){
+  pca_fit_ontology[[as.numeric(ontology_id)]] |>
+    predict(newdata = select_at(data, var_comb)) |>
+    as.data.frame() |>
+    select(PC1) |>
+    `colnames<-`(paste("ontology", ontology_id))
+}
+```
+
+```{r Combine variables for all set, include=FALSE}
+proc_data_combined <-
+  combined_var |>
+  imap(~ combine_var_to_ontology(comb_var_data, .y, .x)) |>
+  reduce(cbind)
+
+proc_data_combined <-
+  comb_var_data |>
+  select_at(setdiff(colnames(comb_var_data), unlist(combined_var))) |>
+  cbind(proc_data_combined) |>
+  rownames_to_column(var = "id")
+```
+
+```{r Obtain train set from combined dataset, include=FALSE}
+train_data_combined <- slice(proc_data_combined, match(train_id, id))
 ```
 
 
