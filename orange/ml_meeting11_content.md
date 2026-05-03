@@ -8,7 +8,7 @@ National Taiwan University of Nursing and Health Sciences
 
 ## Table of Contents
 
-1. [Today's Goal](#todays-goal)
+1. [Subtopics](#subtopics)
 2. [What is Orange?](#what-is-orange)
 3. [Step 1: Load and Explore Data (Meeting 04)](#step-1-load-and-explore-data-meeting-04)
 4. [Step 2: Split Data (Meeting 03)](#step-2-split-data-meeting-03)
@@ -19,9 +19,13 @@ National Taiwan University of Nursing and Health Sciences
 
 ---
 
-## Today's Goal
+## Subtopics
 
-Build a complete ML pipeline in Orange — from raw data to trained models — applying concepts from Meetings 01–10. **All steps use Orange widgets. No coding required.**
+- Loading and exploring data
+- Data partitioning (test set vs. development set)
+- Handling outliers and missing values
+- Feature selection using Chi-squared
+- Training multiple ML algorithms and cross-validation
 
 [Back to Table of Contents](#table-of-contents)
 
