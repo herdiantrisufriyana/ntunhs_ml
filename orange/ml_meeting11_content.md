@@ -1,4 +1,4 @@
-# Hands-on with Orange: End-to-End ML Pipeline (Data to Model)
+# Hands-on with Orange: Data Preprocessing and Model Training
 
 **Herdiantri Sufriyana**
 Graduate Institute of Artificial Intelligence and Big Data in Healthcare
