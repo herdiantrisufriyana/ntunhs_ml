@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 480" font-family="Arial, sans-serif">
+  <rect width="520" height="480" fill="white"/>
+
+  <text x="280" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#222">ROC Curve</text>
+
+  <g transform="translate(80, 45)">
+    <!-- Axes -->
+    <line x1="0" y1="320" x2="360" y2="320" stroke="#333" stroke-width="1.5"/>
+    <line x1="0" y1="0" x2="0" y2="320" stroke="#333" stroke-width="1.5"/>
+
+    <!-- Axis labels -->
+    <text x="180" y="355" text-anchor="middle" font-size="12" fill="#333">1 - Specificity (False Positive Rate)</text>
+    <text x="-40" y="160" text-anchor="middle" font-size="12" fill="#333" transform="rotate(-90, -40, 160)">Sensitivity (True Positive Rate)</text>
+
+    <!-- X-axis ticks -->
+    <line x1="0" y1="320" x2="0" y2="325" stroke="#333"/>
+    <text x="0" y="338" text-anchor="middle" font-size="10" fill="#555">0.0</text>
+    <line x1="72" y1="320" x2="72" y2="325" stroke="#333"/>
+    <text x="72" y="338" text-anchor="middle" font-size="10" fill="#555">0.2</text>
+    <line x1="144" y1="320" x2="144" y2="325" stroke="#333"/>
+    <text x="144" y="338" text-anchor="middle" font-size="10" fill="#555">0.4</text>
+    <line x1="216" y1="320" x2="216" y2="325" stroke="#333"/>
+    <text x="216" y="338" text-anchor="middle" font-size="10" fill="#555">0.6</text>
+    <line x1="288" y1="320" x2="288" y2="325" stroke="#333"/>
+    <text x="288" y="338" text-anchor="middle" font-size="10" fill="#555">0.8</text>
+    <line x1="360" y1="320" x2="360" y2="325" stroke="#333"/>
+    <text x="360" y="338" text-anchor="middle" font-size="10" fill="#555">1.0</text>
+
+    <!-- Y-axis ticks -->
+    <line x1="-5" y1="320" x2="0" y2="320" stroke="#333"/>
+    <text x="-10" y="324" text-anchor="end" font-size="10" fill="#555">0.0</text>
+    <line x1="-5" y1="256" x2="0" y2="256" stroke="#333"/>
+    <text x="-10" y="260" text-anchor="end" font-size="10" fill="#555">0.2</text>
+    <line x1="-5" y1="192" x2="0" y2="192" stroke="#333"/>
+    <text x="-10" y="196" text-anchor="end" font-size="10" fill="#555">0.4</text>
+    <line x1="-5" y1="128" x2="0" y2="128" stroke="#333"/>
+    <text x="-10" y="132" text-anchor="end" font-size="10" fill="#555">0.6</text>
+    <line x1="-5" y1="64" x2="0" y2="64" stroke="#333"/>
+    <text x="-10" y="68" text-anchor="end" font-size="10" fill="#555">0.8</text>
+    <line x1="-5" y1="0" x2="0" y2="0" stroke="#333"/>
+    <text x="-10" y="4" text-anchor="end" font-size="10" fill="#555">1.0</text>
+
+    <!-- Grid lines -->
+    <line x1="0" y1="256" x2="360" y2="256" stroke="#eee" stroke-width="0.5"/>
+    <line x1="0" y1="192" x2="360" y2="192" stroke="#eee" stroke-width="0.5"/>
+    <line x1="0" y1="128" x2="360" y2="128" stroke="#eee" stroke-width="0.5"/>
+    <line x1="0" y1="64" x2="360" y2="64" stroke="#eee" stroke-width="0.5"/>
+    <line x1="72" y1="0" x2="72" y2="320" stroke="#eee" stroke-width="0.5"/>
+    <line x1="144" y1="0" x2="144" y2="320" stroke="#eee" stroke-width="0.5"/>
+    <line x1="216" y1="0" x2="216" y2="320" stroke="#eee" stroke-width="0.5"/>
+    <line x1="288" y1="0" x2="288" y2="320" stroke="#eee" stroke-width="0.5"/>
+
+    <!-- Random classifier diagonal -->
+    <line x1="0" y1="320" x2="360" y2="0" stroke="#999" stroke-width="1.2" stroke-dasharray="6,4"/>
+    <text x="260" y="125" font-size="9" fill="#888" transform="rotate(-41.5, 260, 125)">Random (AUC = 0.5)</text>
+
+    <!-- Good model ROC curve (blue, AUC ~ 0.85) -->
+    <path d="M 0,320 Q 10,80 50,48 Q 100,16 180,8 Q 270,0 360,0"
+      fill="none" stroke="#4472C4" stroke-width="2.5"/>
+    <text x="105" y="55" font-size="10" fill="#4472C4" font-weight="bold">Good model (AUC = 0.85)</text>
+
+    <!-- Poor model ROC curve (red, AUC ~ 0.65) -->
+    <path d="M 0,320 Q 60,220 144,160 Q 230,100 360,0"
+      fill="none" stroke="#C44444" stroke-width="2"/>
+    <text x="170" y="155" font-size="10" fill="#C44444">Poor model (AUC = 0.65)</text>
+
+    <!-- Youden's J point on good model -->
+    <circle cx="36" cy="56" r="6" fill="none" stroke="#2E7D32" stroke-width="2"/>
+    <path d="M 48,58 L 75,80" fill="none" stroke="#2E7D32" stroke-width="1"/>
+    <text x="78" y="88" font-size="9" fill="#2E7D32">Youden's J</text>
+    <text x="78" y="99" font-size="9" fill="#2E7D32">(optimal threshold)</text>
+
+    <!-- Shaded AUC area for good model (light fill) -->
+    <path d="M 0,320 Q 10,80 50,48 Q 100,16 180,8 Q 270,0 360,0 L 360,320 Z"
+      fill="#4472C4" opacity="0.08"/>
+
+    <!-- How-to box -->
+    <rect x="100" y="220" width="255" height="95" rx="4" fill="#F5F5F0" stroke="#CCC" stroke-width="0.8"/>
+    <text x="110" y="236" font-size="10" font-weight="bold" fill="#333">How to create:</text>
+    <text x="110" y="250" font-size="9.5" fill="#444">1. Sweep threshold from 1.0 down to 0.0</text>
+    <text x="110" y="263" font-size="9.5" fill="#444">2. At each threshold, compute:</text>
+    <text x="110" y="276" font-size="9.5" fill="#444">   x = FPR = FP/(FP+TN) = 1 - Specificity</text>
+    <text x="110" y="289" font-size="9.5" fill="#444">   y = TPR = TP/(TP+FN) = Sensitivity</text>
+    <text x="110" y="302" font-size="9.5" fill="#444">3. AUC = area under this curve (0.5 to 1.0)</text>
+
+    <!-- Legend -->
+    <line x1="80" y1="372" x2="100" y2="372" stroke="#4472C4" stroke-width="2.5"/>
+    <text x="105" y="376" font-size="10" fill="#333">Good discrimination</text>
+    <line x1="230" y1="372" x2="250" y2="372" stroke="#C44444" stroke-width="2"/>
+    <text x="255" y="376" font-size="10" fill="#333">Poor discrimination</text>
+  </g>
+</svg>

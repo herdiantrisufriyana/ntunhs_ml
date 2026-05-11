@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 480" font-family="Arial, sans-serif">
+  <!-- Background -->
+  <rect width="520" height="480" fill="white"/>
+
+  <!-- Title -->
+  <text x="280" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#222">Calibration Plot</text>
+
+  <!-- Plot area -->
+  <g transform="translate(80, 45)">
+    <!-- Axes -->
+    <line x1="0" y1="320" x2="360" y2="320" stroke="#333" stroke-width="1.5"/>
+    <line x1="0" y1="0" x2="0" y2="320" stroke="#333" stroke-width="1.5"/>
+
+    <!-- Axis labels -->
+    <text x="180" y="355" text-anchor="middle" font-size="12" fill="#333">Mean predicted probability</text>
+    <text x="-40" y="160" text-anchor="middle" font-size="12" fill="#333" transform="rotate(-90, -40, 160)">Observed event rate</text>
+
+    <!-- Tick marks and labels (0.0 to 1.0) -->
+    <line x1="0" y1="320" x2="0" y2="325" stroke="#333" stroke-width="1"/>
+    <text x="0" y="338" text-anchor="middle" font-size="10" fill="#555">0.0</text>
+    <line x1="72" y1="320" x2="72" y2="325" stroke="#333" stroke-width="1"/>
+    <text x="72" y="338" text-anchor="middle" font-size="10" fill="#555">0.2</text>
+    <line x1="144" y1="320" x2="144" y2="325" stroke="#333" stroke-width="1"/>
+    <text x="144" y="338" text-anchor="middle" font-size="10" fill="#555">0.4</text>
+    <line x1="216" y1="320" x2="216" y2="325" stroke="#333" stroke-width="1"/>
+    <text x="216" y="338" text-anchor="middle" font-size="10" fill="#555">0.6</text>
+    <line x1="288" y1="320" x2="288" y2="325" stroke="#333" stroke-width="1"/>
+    <text x="288" y="338" text-anchor="middle" font-size="10" fill="#555">0.8</text>
+    <line x1="360" y1="320" x2="360" y2="325" stroke="#333" stroke-width="1"/>
+    <text x="360" y="338" text-anchor="middle" font-size="10" fill="#555">1.0</text>
+
+    <!-- Y-axis ticks -->
+    <line x1="-5" y1="320" x2="0" y2="320" stroke="#333" stroke-width="1"/>
+    <text x="-10" y="324" text-anchor="end" font-size="10" fill="#555">0.0</text>
+    <line x1="-5" y1="256" x2="0" y2="256" stroke="#333" stroke-width="1"/>
+    <text x="-10" y="260" text-anchor="end" font-size="10" fill="#555">0.2</text>
+    <line x1="-5" y1="192" x2="0" y2="192" stroke="#333" stroke-width="1"/>
+    <text x="-10" y="196" text-anchor="end" font-size="10" fill="#555">0.4</text>
+    <line x1="-5" y1="128" x2="0" y2="128" stroke="#333" stroke-width="1"/>
+    <text x="-10" y="132" text-anchor="end" font-size="10" fill="#555">0.6</text>
+    <line x1="-5" y1="64" x2="0" y2="64" stroke="#333" stroke-width="1"/>
+    <text x="-10" y="68" text-anchor="end" font-size="10" fill="#555">0.8</text>
+    <line x1="-5" y1="0" x2="0" y2="0" stroke="#333" stroke-width="1"/>
+    <text x="-10" y="4" text-anchor="end" font-size="10" fill="#555">1.0</text>
+
+    <!-- Grid lines -->
+    <line x1="0" y1="256" x2="360" y2="256" stroke="#eee" stroke-width="0.5"/>
+    <line x1="0" y1="192" x2="360" y2="192" stroke="#eee" stroke-width="0.5"/>
+    <line x1="0" y1="128" x2="360" y2="128" stroke="#eee" stroke-width="0.5"/>
+    <line x1="0" y1="64" x2="360" y2="64" stroke="#eee" stroke-width="0.5"/>
+    <line x1="72" y1="0" x2="72" y2="320" stroke="#eee" stroke-width="0.5"/>
+    <line x1="144" y1="0" x2="144" y2="320" stroke="#eee" stroke-width="0.5"/>
+    <line x1="216" y1="0" x2="216" y2="320" stroke="#eee" stroke-width="0.5"/>
+    <line x1="288" y1="0" x2="288" y2="320" stroke="#eee" stroke-width="0.5"/>
+
+    <!-- Perfect calibration line (diagonal) -->
+    <line x1="0" y1="320" x2="360" y2="0" stroke="#999" stroke-width="1.5" stroke-dasharray="6,4"/>
+    <text x="295" y="42" font-size="10" fill="#888" transform="rotate(-41.5, 295, 42)">Perfect calibration</text>
+
+    <!-- === Regression lines (drawn before dots so dots appear on top) === -->
+
+    <!-- Blue model regression line: y = -0.02 + 1.05x (nearly diagonal) -->
+    <!-- At x=0: y=−0.02 → py=326; at x=1: y=1.03 → py=−10 -->
+    <!-- Clipped to plot: approx (6, 320) to (358, 2) -->
+    <line x1="6" y1="320" x2="358" y2="2" stroke="#4472C4" stroke-width="1.8" opacity="0.6"/>
+
+    <!-- Red model regression line: y = 0.13 + 0.67x (slope < 1) -->
+    <!-- At x=0: y=0.13 → py=278; at x=1: y=0.80 → py=64 -->
+    <line x1="0" y1="278" x2="360" y2="64" stroke="#C44444" stroke-width="1.8" opacity="0.6"/>
+
+    <!-- Regression line labels -->
+    <text x="335" y="16" font-size="9" fill="#4472C4" font-weight="bold">a = -0.02</text>
+    <text x="335" y="28" font-size="9" fill="#4472C4" font-weight="bold">b = 1.05</text>
+    <text x="310" y="58" font-size="9" fill="#C44444" font-weight="bold">a = 0.13</text>
+    <text x="310" y="70" font-size="9" fill="#C44444" font-weight="bold">b = 0.67</text>
+
+    <!-- Well-calibrated model (blue dots, close to diagonal) -->
+    <circle cx="25" cy="303" r="5" fill="#4472C4" opacity="0.85"/>
+    <circle cx="65" cy="268" r="5" fill="#4472C4" opacity="0.85"/>
+    <circle cx="108" cy="227" r="5" fill="#4472C4" opacity="0.85"/>
+    <circle cx="155" cy="185" r="5" fill="#4472C4" opacity="0.85"/>
+    <circle cx="198" cy="142" r="5" fill="#4472C4" opacity="0.85"/>
+    <circle cx="230" cy="110" r="5" fill="#4472C4" opacity="0.85"/>
+    <circle cx="268" cy="73" r="5" fill="#4472C4" opacity="0.85"/>
+    <circle cx="310" cy="38" r="5" fill="#4472C4" opacity="0.85"/>
+    <circle cx="345" cy="10" r="5" fill="#4472C4" opacity="0.85"/>
+
+    <!-- Poorly calibrated model (red dots, above diagonal at low, below at high) -->
+    <circle cx="25" cy="290" r="5" fill="#C44444" opacity="0.85"/>
+    <circle cx="65" cy="240" r="5" fill="#C44444" opacity="0.85"/>
+    <circle cx="108" cy="195" r="5" fill="#C44444" opacity="0.85"/>
+    <circle cx="155" cy="170" r="5" fill="#C44444" opacity="0.85"/>
+    <circle cx="198" cy="155" r="5" fill="#C44444" opacity="0.85"/>
+    <circle cx="230" cy="148" r="5" fill="#C44444" opacity="0.85"/>
+    <circle cx="268" cy="130" r="5" fill="#C44444" opacity="0.85"/>
+    <circle cx="310" cy="105" r="5" fill="#C44444" opacity="0.85"/>
+    <circle cx="345" cy="72" r="5" fill="#C44444" opacity="0.85"/>
+
+    <!-- Annotation: slope < 1 behavior -->
+    <path d="M 65,235 Q 45,200 55,175" fill="none" stroke="#C44444" stroke-width="1" marker-end="url(#arrowRed)"/>
+    <text x="8" y="165" font-size="9" fill="#C44444" font-style="italic">Slope &lt; 1: overestimates</text>
+    <text x="8" y="177" font-size="9" fill="#C44444" font-style="italic">at low predicted prob</text>
+
+    <path d="M 310,110 Q 330,145 320,165" fill="none" stroke="#C44444" stroke-width="1" marker-end="url(#arrowRed)"/>
+    <text x="255" y="175" font-size="9" fill="#C44444" font-style="italic">Slope &lt; 1: underestimates</text>
+    <text x="255" y="187" font-size="9" fill="#C44444" font-style="italic">at high predicted prob</text>
+
+    <!-- Annotation box: how to make it -->
+    <rect x="100" y="230" width="255" height="88" rx="4" fill="#F5F5F0" stroke="#CCC" stroke-width="0.8"/>
+    <text x="110" y="246" font-size="10" font-weight="bold" fill="#333">How to create:</text>
+    <text x="110" y="260" font-size="9.5" fill="#444">1. Group predicted probabilities into bins</text>
+    <text x="110" y="273" font-size="9.5" fill="#444">   (e.g., deciles = 10 groups)</text>
+    <text x="110" y="286" font-size="9.5" fill="#444">2. For each bin: x = mean(predicted prob),</text>
+    <text x="110" y="299" font-size="9.5" fill="#444">   y = observed event rate (proportion of 1s)</text>
+    <text x="110" y="312" font-size="9.5" fill="#444">3. Fit regression line to get intercept (a) and slope (b)</text>
+
+    <!-- Legend -->
+    <circle cx="30" cy="375" r="5" fill="#4472C4" opacity="0.85"/>
+    <line x1="40" y1="375" x2="60" y2="375" stroke="#4472C4" stroke-width="1.8" opacity="0.6"/>
+    <text x="65" y="379" font-size="10" fill="#333">Well-calibrated (a ~ 0, b ~ 1)</text>
+    <circle cx="30" cy="393" r="5" fill="#C44444" opacity="0.85"/>
+    <line x1="40" y1="393" x2="60" y2="393" stroke="#C44444" stroke-width="1.8" opacity="0.6"/>
+    <text x="65" y="397" font-size="10" fill="#333">Poorly calibrated (a = 0.13, b = 0.67)</text>
+  </g>
+
+  <!-- Arrow marker definitions -->
+  <defs>
+    <marker id="arrowRed" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#C44444"/>
+    </marker>
+  </defs>
+</svg>

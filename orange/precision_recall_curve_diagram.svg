@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 480" font-family="Arial, sans-serif">
+  <rect width="520" height="480" fill="white"/>
+
+  <text x="280" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#222">Precision-Recall Curve</text>
+
+  <g transform="translate(80, 45)">
+    <!-- Axes -->
+    <line x1="0" y1="320" x2="360" y2="320" stroke="#333" stroke-width="1.5"/>
+    <line x1="0" y1="0" x2="0" y2="320" stroke="#333" stroke-width="1.5"/>
+
+    <!-- Axis labels -->
+    <text x="180" y="355" text-anchor="middle" font-size="12" fill="#333">Recall (Sensitivity)</text>
+    <text x="-40" y="160" text-anchor="middle" font-size="12" fill="#333" transform="rotate(-90, -40, 160)">Precision (PPV)</text>
+
+    <!-- X-axis ticks -->
+    <line x1="0" y1="320" x2="0" y2="325" stroke="#333"/>
+    <text x="0" y="338" text-anchor="middle" font-size="10" fill="#555">0.0</text>
+    <line x1="72" y1="320" x2="72" y2="325" stroke="#333"/>
+    <text x="72" y="338" text-anchor="middle" font-size="10" fill="#555">0.2</text>
+    <line x1="144" y1="320" x2="144" y2="325" stroke="#333"/>
+    <text x="144" y="338" text-anchor="middle" font-size="10" fill="#555">0.4</text>
+    <line x1="216" y1="320" x2="216" y2="325" stroke="#333"/>
+    <text x="216" y="338" text-anchor="middle" font-size="10" fill="#555">0.6</text>
+    <line x1="288" y1="320" x2="288" y2="325" stroke="#333"/>
+    <text x="288" y="338" text-anchor="middle" font-size="10" fill="#555">0.8</text>
+    <line x1="360" y1="320" x2="360" y2="325" stroke="#333"/>
+    <text x="360" y="338" text-anchor="middle" font-size="10" fill="#555">1.0</text>
+
+    <!-- Y-axis ticks -->
+    <line x1="-5" y1="320" x2="0" y2="320" stroke="#333"/>
+    <text x="-10" y="324" text-anchor="end" font-size="10" fill="#555">0.0</text>
+    <line x1="-5" y1="256" x2="0" y2="256" stroke="#333"/>
+    <text x="-10" y="260" text-anchor="end" font-size="10" fill="#555">0.2</text>
+    <line x1="-5" y1="192" x2="0" y2="192" stroke="#333"/>
+    <text x="-10" y="196" text-anchor="end" font-size="10" fill="#555">0.4</text>
+    <line x1="-5" y1="128" x2="0" y2="128" stroke="#333"/>
+    <text x="-10" y="132" text-anchor="end" font-size="10" fill="#555">0.6</text>
+    <line x1="-5" y1="64" x2="0" y2="64" stroke="#333"/>
+    <text x="-10" y="68" text-anchor="end" font-size="10" fill="#555">0.8</text>
+    <line x1="-5" y1="0" x2="0" y2="0" stroke="#333"/>
+    <text x="-10" y="4" text-anchor="end" font-size="10" fill="#555">1.0</text>
+
+    <!-- Grid lines -->
+    <line x1="0" y1="256" x2="360" y2="256" stroke="#eee" stroke-width="0.5"/>
+    <line x1="0" y1="192" x2="360" y2="192" stroke="#eee" stroke-width="0.5"/>
+    <line x1="0" y1="128" x2="360" y2="128" stroke="#eee" stroke-width="0.5"/>
+    <line x1="0" y1="64" x2="360" y2="64" stroke="#eee" stroke-width="0.5"/>
+    <line x1="72" y1="0" x2="72" y2="320" stroke="#eee" stroke-width="0.5"/>
+    <line x1="144" y1="0" x2="144" y2="320" stroke="#eee" stroke-width="0.5"/>
+    <line x1="216" y1="0" x2="216" y2="320" stroke="#eee" stroke-width="0.5"/>
+    <line x1="288" y1="0" x2="288" y2="320" stroke="#eee" stroke-width="0.5"/>
+
+    <!-- Random baseline (horizontal dashed line at prevalence, e.g., 0.2) -->
+    <line x1="0" y1="256" x2="360" y2="256" stroke="#999" stroke-width="1.2" stroke-dasharray="6,4"/>
+    <text x="365" y="260" font-size="9" fill="#888">Prevalence</text>
+    <text x="365" y="271" font-size="9" fill="#888">(random)</text>
+
+    <!-- Good model PRC (blue, high precision maintained) -->
+    <path d="M 0,8 Q 72,12 144,24 Q 216,48 270,96 Q 324,176 360,280"
+      fill="none" stroke="#4472C4" stroke-width="2.5"/>
+    <text x="45" y="52" font-size="10" fill="#4472C4" font-weight="bold">Good model</text>
+    <text x="45" y="64" font-size="10" fill="#4472C4" font-weight="bold">(AUC-PRC = 0.82)</text>
+
+    <!-- Poor model PRC (red, precision drops quickly) -->
+    <path d="M 0,32 Q 36,80 108,160 Q 180,224 252,256 Q 310,272 360,280"
+      fill="none" stroke="#C44444" stroke-width="2"/>
+    <text x="140" y="185" font-size="10" fill="#C44444">Poor model</text>
+    <text x="140" y="197" font-size="10" fill="#C44444">(AUC-PRC = 0.42)</text>
+
+    <!-- Annotation: why PRC matters -->
+    <rect x="120" y="93" width="235" height="52" rx="3" fill="#FFF8E1" stroke="#F9A825" stroke-width="0.8" opacity="0.95"/>
+    <text x="130" y="109" font-size="9.5" fill="#7B6B00">PRC is more informative than ROC when</text>
+    <text x="130" y="122" font-size="9.5" fill="#7B6B00">classes are imbalanced (few positives).</text>
+    <text x="130" y="135" font-size="9.5" fill="#7B6B00">ROC can look optimistic; PRC exposes the cost.</text>
+
+    <!-- How-to box -->
+    <rect x="85" y="220" width="270" height="95" rx="4" fill="#F5F5F0" stroke="#CCC" stroke-width="0.8"/>
+    <text x="95" y="236" font-size="10" font-weight="bold" fill="#333">How to create:</text>
+    <text x="95" y="250" font-size="9.5" fill="#444">1. Sweep threshold from 1.0 down to 0.0</text>
+    <text x="95" y="263" font-size="9.5" fill="#444">2. At each threshold, compute:</text>
+    <text x="95" y="276" font-size="9.5" fill="#444">   x = Recall = TP/(TP+FN)</text>
+    <text x="95" y="289" font-size="9.5" fill="#444">   y = Precision = TP/(TP+FP)</text>
+    <text x="95" y="302" font-size="9.5" fill="#444">3. AUC-PRC = area under this curve</text>
+
+    <!-- Legend -->
+    <line x1="80" y1="372" x2="100" y2="372" stroke="#4472C4" stroke-width="2.5"/>
+    <text x="105" y="376" font-size="10" fill="#333">Good discrimination</text>
+    <line x1="230" y1="372" x2="250" y2="372" stroke="#C44444" stroke-width="2"/>
+    <text x="255" y="376" font-size="10" fill="#333">Poor discrimination</text>
+  </g>
+</svg>

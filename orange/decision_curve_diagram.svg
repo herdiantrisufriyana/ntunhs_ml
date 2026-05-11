@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 530" font-family="Arial, sans-serif">
+  <rect width="520" height="530" fill="white"/>
+
+  <text x="280" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#222">Decision Curve Analysis</text>
+
+  <g transform="translate(80, 45)">
+    <!-- Plot area: NB range -0.02 to 0.3 -->
+    <!-- NB=0.3 → y=0, NB=0.0 → y=267, NB=-0.02 → y=285 -->
+    <!-- Scale: 267px / 0.3 = 890 px per NB unit -->
+
+    <!-- X-axis (at bottom, below NB=0) -->
+    <line x1="0" y1="285" x2="360" y2="285" stroke="#333" stroke-width="1.5"/>
+    <!-- Y-axis -->
+    <line x1="0" y1="0" x2="0" y2="285" stroke="#333" stroke-width="1.5"/>
+
+    <!-- Axis labels -->
+    <text x="180" y="320" text-anchor="middle" font-size="12" fill="#333">Threshold probability (pt)</text>
+    <text x="-40" y="140" text-anchor="middle" font-size="12" fill="#333" transform="rotate(-90, -40, 140)">Net benefit</text>
+
+    <!-- X-axis ticks -->
+    <line x1="0" y1="285" x2="0" y2="290" stroke="#333"/>
+    <text x="0" y="303" text-anchor="middle" font-size="10" fill="#555">0.0</text>
+    <line x1="72" y1="285" x2="72" y2="290" stroke="#333"/>
+    <text x="72" y="303" text-anchor="middle" font-size="10" fill="#555">0.2</text>
+    <line x1="144" y1="285" x2="144" y2="290" stroke="#333"/>
+    <text x="144" y="303" text-anchor="middle" font-size="10" fill="#555">0.4</text>
+    <line x1="216" y1="285" x2="216" y2="290" stroke="#333"/>
+    <text x="216" y="303" text-anchor="middle" font-size="10" fill="#555">0.6</text>
+    <line x1="288" y1="285" x2="288" y2="290" stroke="#333"/>
+    <text x="288" y="303" text-anchor="middle" font-size="10" fill="#555">0.8</text>
+    <line x1="360" y1="285" x2="360" y2="290" stroke="#333"/>
+    <text x="360" y="303" text-anchor="middle" font-size="10" fill="#555">1.0</text>
+
+    <!-- Y-axis ticks -->
+    <line x1="-5" y1="267" x2="0" y2="267" stroke="#333"/>
+    <text x="-10" y="271" text-anchor="end" font-size="10" fill="#555">0.0</text>
+    <line x1="-5" y1="178" x2="0" y2="178" stroke="#333"/>
+    <text x="-10" y="182" text-anchor="end" font-size="10" fill="#555">0.1</text>
+    <line x1="-5" y1="89" x2="0" y2="89" stroke="#333"/>
+    <text x="-10" y="93" text-anchor="end" font-size="10" fill="#555">0.2</text>
+    <line x1="-5" y1="0" x2="0" y2="0" stroke="#333"/>
+    <text x="-10" y="4" text-anchor="end" font-size="10" fill="#555">0.3</text>
+
+    <!-- Grid lines -->
+    <line x1="0" y1="178" x2="360" y2="178" stroke="#eee" stroke-width="0.5"/>
+    <line x1="0" y1="89" x2="360" y2="89" stroke="#eee" stroke-width="0.5"/>
+    <line x1="72" y1="0" x2="72" y2="285" stroke="#eee" stroke-width="0.5"/>
+    <line x1="144" y1="0" x2="144" y2="285" stroke="#eee" stroke-width="0.5"/>
+    <line x1="216" y1="0" x2="216" y2="285" stroke="#eee" stroke-width="0.5"/>
+    <line x1="288" y1="0" x2="288" y2="285" stroke="#eee" stroke-width="0.5"/>
+
+    <!-- NB=0 reference line (light gray, at y=267) -->
+    <line x1="0" y1="267" x2="360" y2="267" stroke="#DDD" stroke-width="0.5"/>
+
+    <!-- Treat none: dashed line at NB=0 (y=267), clearly above x-axis -->
+    <line x1="0" y1="267" x2="360" y2="267" stroke="#999" stroke-width="1.5" stroke-dasharray="5,4"/>
+    <text x="365" y="271" font-size="9" fill="#888">Treat none</text>
+
+    <!-- Treat all: STRAIGHT line from (pt=0, NB=0.3) to (pt=0.3, NB=0) crossing treat-none -->
+    <!-- (x=0, y=0) to (x=108, y=267), extending past into negative to (x=115, y=285) -->
+    <line x1="0" y1="0" x2="115" y2="285" stroke="#999" stroke-width="2"/>
+    <text x="10" y="20" font-size="9.5" fill="#888">Treat all</text>
+
+    <!-- Prevalence marker on x-axis -->
+    <line x1="108" y1="262" x2="108" y2="272" stroke="#999" stroke-width="1"/>
+    <text x="108" y="260" text-anchor="middle" font-size="8.5" fill="#888">prevalence</text>
+
+    <!-- Model curve (blue, stays above both references in useful range) -->
+    <polyline points="0,4 36,22 72,50 108,85 144,125 180,165 216,205 252,235 288,255 324,264 360,266"
+      fill="none" stroke="#4472C4" stroke-width="2.5"/>
+    <text x="145" y="108" font-size="9.5" fill="#4472C4" font-weight="bold">Model</text>
+
+    <!-- How-to box (top right corner) -->
+    <rect x="178" y="2" width="180" height="68" rx="4" fill="#F5F5F0" stroke="#CCC" stroke-width="0.8"/>
+    <text x="188" y="17" font-size="10" font-weight="bold" fill="#333">How to create:</text>
+    <text x="188" y="30" font-size="9" fill="#444">1. For each pt from 0.01 to 0.99:</text>
+    <text x="188" y="42" font-size="9" fill="#444">   NB = TP/N - FP/N * pt/(1-pt)</text>
+    <text x="188" y="54" font-size="9" fill="#444">2. Treat all: predict everyone +</text>
+    <text x="188" y="66" font-size="9" fill="#444">3. Treat none: NB = 0 always</text>
+
+    <!-- Legend -->
+    <line x1="80" y1="345" x2="100" y2="345" stroke="#4472C4" stroke-width="2.5"/>
+    <text x="105" y="349" font-size="10" fill="#333">Model</text>
+    <line x1="170" y1="345" x2="190" y2="345" stroke="#999" stroke-width="2"/>
+    <text x="195" y="349" font-size="10" fill="#333">Treat all</text>
+    <line x1="260" y1="345" x2="280" y2="345" stroke="#999" stroke-width="1.5" stroke-dasharray="5,4"/>
+    <text x="285" y="349" font-size="10" fill="#333">Treat none</text>
+
+    <!-- Reference strategy explanations below the plot -->
+    <rect x="0" y="365" width="360" height="100" rx="4" fill="#F9F9F9" stroke="#CCC" stroke-width="0.8"/>
+    <text x="10" y="382" font-size="10" font-weight="bold" fill="#333">Reference strategies:</text>
+    <text x="10" y="398" font-size="9.5" fill="#444">Treat none: NB = 0 for all thresholds (no one is treated)</text>
+    <text x="10" y="414" font-size="9.5" fill="#444">Treat all:  intercept = prevalence (NB at pt = 0)</text>
+    <text x="10" y="430" font-size="9.5" fill="#444">            straight line crossing NB = 0 at pt = prevalence</text>
+    <text x="10" y="446" font-size="9.5" fill="#444">            (beyond prevalence, cost of FP outweighs benefit</text>
+    <text x="10" y="458" font-size="9.5" fill="#444">            of TP, so NB becomes negative)</text>
+  </g>
+</svg>
