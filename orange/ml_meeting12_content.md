@@ -10,8 +10,7 @@ National Taiwan University of Nursing and Health Sciences
 
 - Evaluating calibration
 - Choosing an optimal threshold
-- Evaluating discrimination using confusion matrix and ROC curve
-- Evaluating clinical utility using decision curve analysis
+- Evaluating discrimination using confusion matrix
 
 ---
 
@@ -26,7 +25,7 @@ National Taiwan University of Nursing and Health Sciences
 
 ---
 
-## Session 1: Lecture — Calibration (15 mins)
+## Session 1: Lecture — Calibration (20 mins)
 
 ---
 
@@ -84,7 +83,7 @@ $$\text{logit}(Y) = a + b \cdot \text{logit}(\hat{p})$$
 
 ---
 
-## Session 2: Hands-on — Calibration (10 mins)
+## Session 2: Hands-on — Calibration (15 mins)
 
 **Task:** Create a calibration plot comparing all trained models.
 
@@ -98,7 +97,7 @@ $$\text{logit}(Y) = a + b \cdot \text{logit}(\hat{p})$$
 
 ---
 
-## Session 3: Lecture — Threshold (10 mins)
+## Session 3: Lecture — Threshold (20 mins)
 
 ---
 
@@ -144,7 +143,7 @@ $$J = \text{Sensitivity} + \text{Specificity} - 1$$
 
 ---
 
-## Session 4: Hands-on — Threshold (10 mins)
+## Session 4: Hands-on — Threshold (15 mins)
 
 **Task:** Determine the cost-aware threshold for your clinical scenario.
 
@@ -159,7 +158,7 @@ $$J = \text{Sensitivity} + \text{Specificity} - 1$$
 
 ---
 
-## Session 5: Lecture — Confusion Matrix (10 mins)
+## Session 5: Lecture — Confusion Matrix (20 mins)
 
 ---
 
@@ -200,7 +199,7 @@ $$\text{MCC} = \frac{TP \cdot TN - FP \cdot FN}{\sqrt{(TP+FP)(TP+FN)(TN+FP)(TN+F
 
 ---
 
-## Session 6: Hands-on — Stack Models and Compute Predictions (15 mins)
+## Session 6: Hands-on — Stack Models and Compute Predictions (20 mins)
 
 **Task:** Prepare stacked predictions at your cost-aware threshold.
 
@@ -215,7 +214,7 @@ $$\text{MCC} = \frac{TP \cdot TN - FP \cdot FN}{\sqrt{(TP+FP)(TP+FN)(TN+FP)(TN+F
 
 ---
 
-## Session 7: Hands-on — Add Outcome (15 mins)
+## Session 7: Hands-on — Add Outcome (20 mins)
 
 **Task:** Merge the actual outcome with the stacked predictions.
 
@@ -230,7 +229,7 @@ $$\text{MCC} = \frac{TP \cdot TN - FP \cdot FN}{\sqrt{(TP+FP)(TP+FN)(TN+FP)(TN+F
 
 ---
 
-## Session 8: Hands-on — Compute Confusion Matrix and Metrics (15 mins)
+## Session 8: Hands-on — Compute Confusion Matrix and Metrics (20 mins)
 
 **Task:** Compute TP/FP/FN/TN per model and derive discrimination metrics.
 
@@ -255,142 +254,8 @@ $$\text{MCC} = \frac{TP \cdot TN - FP \cdot FN}{\sqrt{(TP+FP)(TP+FN)(TN+FP)(TN+F
 
 ---
 
-## Session 9: Lecture — Discrimination (10 mins)
-
----
-
-## What is Discrimination?
-
-Discrimination is the model's ability to **separate** patients with and without the outcome across **all possible thresholds**.
-
-**Threshold-independent metrics:**
-
-| Metric | What it measures |
-|--------|-----------------|
-| **AUC-ROC** | Area under the receiver operating characteristic curve — overall separation |
-| **AUC-PRC** | Area under the precision-recall curve — useful for imbalanced data |
-
-**ROC curve:** plots sensitivity (y) vs. 1 − specificity (x) at every threshold — now you know what these mean from Session 5.
-
-**PRC curve:** plots precision/PPV (y) vs. recall/sensitivity (x) at every threshold.
-
----
-
-## ROC Curve
-
-![ROC Curve](roc_curve_diagram.svg)
-
----
-
-## Precision-Recall Curve
-
-![Precision-Recall Curve](precision_recall_curve_diagram.svg)
-
----
-
-## Session 10: Hands-on — Discrimination (10 mins)
-
-**Task:** Compare discrimination ability of all models using ROC analysis, and locate your cost-aware threshold on the curve.
-
-**Steps:**
-1. Connect **5-fold cross-validation → ROC Analysis** (label it "ROC curve") via **Evaluation Results → Evaluation Results**
-2. In the ROC curve widget, view the ROC curves for all algorithms
-3. Compare AUC values — identify the best-discriminating model
-4. Note which algorithms have curves close to the diagonal (poor) vs. upper-left corner (good)
-5. Click on the ROC curve to move the threshold point to your cost-aware $p_t$ from Session 4 — note the sensitivity and specificity
-6. Compare to Youden's J (the point farthest from the diagonal) — is your cost-aware threshold higher or lower? Why?
-
-**Orange environment** — Continuing from Session 8
-
----
-
-## Session 11: Lecture — Clinical Utility (10 mins)
-
----
-
-## What is Clinical Utility?
-
-Clinical utility measures whether using the model **improves clinical decisions** compared to treating all or treating none.
-
-**Decision curve analysis (DCA):**
-- Plots **net benefit** against a range of **threshold probabilities**
-- Net benefit = true positives (weighted) minus false positives (weighted by threshold)
-
-$$\text{Net benefit} = \frac{TP}{N} - \frac{FP}{N} \cdot \frac{p_t}{1 - p_t}$$
-
-Where $p_t$ = threshold probability (the probability above which you would treat). Now you know what TP and FP mean from Session 5.
-
-**Interpretation:**
-- Compare the model's net benefit curve to two reference strategies:
-  - **Treat all** = assume everyone is positive
-  - **Treat none** = assume everyone is negative (net benefit = 0)
-- A useful model has net benefit **above both references** across clinically relevant thresholds
-
-**Determining the reference strategies:**
-
-| Strategy | Intercept (at $p_t$ = 0) | Slope | Reaches NB = 0 at |
-|----------|-------------------------|-------|-------------------|
-| **Treat none** | NB = 0 always | Flat (horizontal line at 0) | Always at 0 |
-| **Treat all** | NB = prevalence | Decreases as $p_t$ increases | $p_t$ = prevalence |
-
-- **Treat none:** No one is treated → TP = 0, FP = 0 → NB = 0 for every threshold
-- **Treat all:** Everyone is predicted positive → TP = all positives, FP = all negatives. At $p_t$ = 0, NB = prevalence (the event rate). As $p_t$ increases, the cost of false positives grows, and NB decreases. NB crosses 0 when $p_t$ equals the prevalence — beyond this, treating everyone costs more than it benefits
-
-> **Can you guess:**
->
-> - At which threshold probability does "treat all" have net benefit = 0?
-> - Why is a model with AUC = 0.90 not necessarily clinically useful?
-> - *(Hint: if the model's net benefit never exceeds "treat all," the model does not add value for decision-making)*
-
----
-
-## Decision Curve
-
-![Decision Curve Analysis](decision_curve_diagram.svg)
-
----
-
-## Session 12: Hands-on — Build Parallel Chain for Treat All and Treat None (10 mins)
-
-**Task:** Add treat-all and treat-none reference models alongside the 7 trained models.
-
-**Steps:**
-1. Drag a **Formula** widget (label it "Add treat-all and treat-none") — add two constant columns:
-   - `Treat all := 1.0`
-   - `Treat none := 0.0`
-2. Copy and paste the widgets from Sessions 6–7 as a parallel path with "(1)" suffix. Connect them in the same order:
-   **Add treat-all and treat-none → Predicted probabilities (1) → Stack models (1) → Compute predictions (1) → Predictions (1)**, and **Convert outcome** (from Session 7) **→ Add outcome (1)** via **Data → Extra Data**, **Predictions (1) → Add outcome (1)** via **Selected Data → Data**
-3. Connect **Add outcome** (from Session 7) and **Add outcome (1)** → **Concatenate** (label it "Concatenate model and treat") via **Data → Additional Data** — this combines the 7-model rows with the 2-reference rows
-
-**Orange environment** — Continuing from Session 10
-
----
-
-## Session 13: Hands-on — Compute Net Benefits (10 mins)
-
-**Task:** Compute net benefits and compare clinical utility across all models.
-
-**Steps:**
-1. Connect **Concatenate model and treat → Formula** (label it "Compute confusion matrix (1)") — same formulas as Session 8 step 1
-2. Connect **Compute confusion matrix (1) → Group By** (label it "Group by model (1)") — same settings as Session 8 step 2
-3. Connect **Group by model (1) → Formula** (label it "Compute n") — compute:
-   `n := TP + FP + FN + TN`
-4. Connect **Compute n → Formula** (label it "Compute net benefits") — compute (replace 0.21 with your threshold):
-   `nb := TP / n - FP / n * 0.21 / (1 - 0.21)`
-5. Connect **Compute net benefits → Data Table** (label it "Net benefits") — compare `nb` across all 9 rows
-6. For each model, check whether its `nb` > Treat all's `nb` and > Treat none's `nb` (= 0) — a model is clinically useful only when it exceeds both
-
-**Connect to your capstone study plan:**
-This analysis informs the "model evaluation" section. Students should take notes of any changes from the study plan in the assignment.
-
-**Orange environment** — Continuing from Session 12
-
----
-
 ## Take-home Message
 
 1. **Calibration** measures whether predicted probabilities are accurate — use the calibration plot and Brier score to assess and compare models
 2. **Threshold** selection balances clinical costs — use the cost-aware formula to choose an optimal cutoff, or Youden's J when costs are unknown
 3. **Confusion matrix** provides threshold-dependent metrics (sensitivity, specificity, precision, NPV, F1, accuracy, MCC) — understanding TP/FP/FN/TN is the foundation for all evaluation
-4. **Discrimination** measures separation ability across all thresholds — use AUC-ROC (sensitivity vs. 1−specificity) and AUC-PRC (precision vs. recall)
-5. **Clinical utility** measures whether the model improves decisions — use decision curve analysis (net benefit from TP and FP) to compare against treat-all and treat-none strategies
