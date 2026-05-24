@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 480" font-family="Arial, sans-serif">
+  <rect width="540" height="480" fill="white"/>
+
+  <text x="280" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#222">SHAP Waterfall Plot (Local Explanation)</text>
+  <text x="280" y="46" text-anchor="middle" font-size="11" fill="#666">Explaining a single patient's predicted probability</text>
+
+  <g transform="translate(130, 65)">
+    <!-- Vertical axis line -->
+    <line x1="0" y1="0" x2="0" y2="260" stroke="#333" stroke-width="1"/>
+
+    <!-- X-axis (probability scale) at bottom -->
+    <line x1="0" y1="260" x2="320" y2="260" stroke="#333" stroke-width="1.5"/>
+    <text x="160" y="285" text-anchor="middle" font-size="12" fill="#333">Model output (predicted probability)</text>
+
+    <!-- X-axis ticks -->
+    <text x="0" y="295" text-anchor="middle" font-size="9" fill="#555">0.0</text>
+    <text x="64" y="295" text-anchor="middle" font-size="9" fill="#555">0.1</text>
+    <text x="128" y="295" text-anchor="middle" font-size="9" fill="#555">0.2</text>
+    <text x="192" y="295" text-anchor="middle" font-size="9" fill="#555">0.3</text>
+    <text x="256" y="295" text-anchor="middle" font-size="9" fill="#555">0.4</text>
+    <text x="320" y="295" text-anchor="middle" font-size="9" fill="#555">0.5</text>
+
+    <!-- Grid lines -->
+    <line x1="64" y1="0" x2="64" y2="260" stroke="#eee" stroke-width="0.5"/>
+    <line x1="128" y1="0" x2="128" y2="260" stroke="#eee" stroke-width="0.5"/>
+    <line x1="192" y1="0" x2="192" y2="260" stroke="#eee" stroke-width="0.5"/>
+    <line x1="256" y1="0" x2="256" y2="260" stroke="#eee" stroke-width="0.5"/>
+
+    <!-- Base value line (dashed, at 0.22) -->
+    <line x1="141" y1="0" x2="141" y2="260" stroke="#999" stroke-width="1" stroke-dasharray="4,3"/>
+
+    <!-- === Waterfall bars (bottom to top) === -->
+
+    <!-- Row 5 (bottom): base value label -->
+    <text x="-8" y="243" text-anchor="end" font-size="10" fill="#888">E[f(x)] = 0.22</text>
+    <!-- Base value marker -->
+    <circle cx="141" cy="240" r="4" fill="#999"/>
+
+    <!-- Row 4: sex = female → pushes DOWN by -0.02 (blue) -->
+    <text x="-8" y="203" text-anchor="end" font-size="10.5" fill="#333">sex = F</text>
+    <!-- Bar from 0.22 to 0.20 -->
+    <rect x="128" y="192" width="13" height="20" fill="#5B8DC9" rx="2" opacity="0.85"/>
+    <text x="122" y="206" text-anchor="end" font-size="9" fill="#5B8DC9">-0.02</text>
+    <!-- Connector line down -->
+    <line x1="128" y1="212" x2="128" y2="232" stroke="#DDD" stroke-width="0.8"/>
+
+    <!-- Row 3: glucose = 145 → pushes UP by +0.04 (red) -->
+    <text x="-8" y="163" text-anchor="end" font-size="10.5" fill="#333">glucose = 145</text>
+    <!-- Bar from 0.20 to 0.24 -->
+    <rect x="128" y="152" width="26" height="20" fill="#C95B5B" rx="2" opacity="0.85"/>
+    <text x="160" y="166" font-size="9" fill="#C95B5B">+0.04</text>
+    <!-- Connector line down -->
+    <line x1="128" y1="172" x2="128" y2="192" stroke="#DDD" stroke-width="0.8"/>
+
+    <!-- Row 2: sbp = 160 → pushes UP by +0.08 (red) -->
+    <text x="-8" y="123" text-anchor="end" font-size="10.5" fill="#333">sbp = 160</text>
+    <!-- Bar from 0.24 to 0.32 -->
+    <rect x="154" y="112" width="51" height="20" fill="#C04040" rx="2" opacity="0.85"/>
+    <text x="211" y="126" font-size="9" fill="#C04040">+0.08</text>
+    <!-- Connector line down -->
+    <line x1="154" y1="132" x2="154" y2="152" stroke="#DDD" stroke-width="0.8"/>
+
+    <!-- Row 1 (top): age = 72 → pushes UP by +0.10 (red, largest) -->
+    <text x="-8" y="83" text-anchor="end" font-size="10.5" fill="#333">age = 72</text>
+    <!-- Bar from 0.32 to 0.42 -->
+    <rect x="205" y="72" width="64" height="20" fill="#B83030" rx="2" opacity="0.85"/>
+    <text x="275" y="86" font-size="9" fill="#B83030">+0.10</text>
+    <!-- Connector line down -->
+    <line x1="205" y1="92" x2="205" y2="112" stroke="#DDD" stroke-width="0.8"/>
+
+    <!-- Final prediction marker and label -->
+    <text x="-8" y="43" text-anchor="end" font-size="10" fill="#333" font-weight="bold">f(x) = 0.42</text>
+    <line x1="269" y1="32" x2="269" y2="52" stroke="#333" stroke-width="2"/>
+    <circle cx="269" cy="40" r="5" fill="#333"/>
+    <!-- Arrow from top bar to final prediction -->
+    <line x1="269" y1="52" x2="269" y2="72" stroke="#DDD" stroke-width="0.8"/>
+
+    <!-- How-to box -->
+    <rect x="0" y="310" width="320" height="82" rx="4" fill="#F5F5F0" stroke="#CCC" stroke-width="0.8"/>
+    <text x="10" y="326" font-size="10" font-weight="bold" fill="#333">How to create:</text>
+    <text x="10" y="340" font-size="9.5" fill="#444">1. Start from base value E[f(x)] (average prediction)</text>
+    <text x="10" y="353" font-size="9.5" fill="#444">2. Each bar = one feature's SHAP contribution</text>
+    <text x="10" y="366" font-size="9.5" fill="#444">3. Red bars push prediction up, blue bars push down</text>
+    <text x="10" y="379" font-size="9.5" fill="#444">4. Final prediction = base value + sum of all SHAP values</text>
+
+    <!-- Interpretation box -->
+    <rect x="0" y="400" width="320" height="55" rx="4" fill="#EBF0FA" stroke="#4472C4" stroke-width="0.8"/>
+    <text x="10" y="416" font-size="10" font-weight="bold" fill="#4472C4">Interpretation:</text>
+    <text x="10" y="430" font-size="9.5" fill="#444">This patient: age 72 and sbp 160 drove the prediction</text>
+    <text x="10" y="443" font-size="9.5" fill="#444">from 0.22 (average) up to 0.42 (high risk)</text>
+  </g>
+</svg>
