@@ -293,7 +293,7 @@ if(!v){this.style.borderColor='#ccc';this.style.background='#fff';this.style.col
 const partial=ans.substring(0,v.length);
 if(v.toLowerCase()===partial.toLowerCase()){
 this.style.borderColor='#27ae60';this.style.background='#e8f8e8';this.style.color='#27ae60';
-if(v.toLowerCase()===ans.toLowerCase()){this.disabled=true;checkTypingDone(q)}
+if(v.toLowerCase()===ans.toLowerCase()){this.disabled=true;this.readOnly=true;checkTypingDone(q)}
 }else{
 this.style.borderColor='#f1c40f';this.style.background='#fef9e7';this.style.color='#b7950b';
 }
@@ -312,7 +312,7 @@ for(let bi=0;bi<q.blanks.length;bi++){
 const el=document.getElementById('tinput'+bi);
 if(el&&!el.disabled){
 el.value=q.blanks[bi].answer;
-el.style.borderColor='#27ae60';el.style.background='#e8f8e8';el.disabled=true;
+el.style.borderColor='#27ae60';el.style.background='#e8f8e8';el.style.color='#27ae60';el.disabled=true;el.readOnly=true;
 if(!q._hinted){q._hinted=true;q.points=Math.max(0,q.points-1)}
 checkTypingDone(q);
 return;
