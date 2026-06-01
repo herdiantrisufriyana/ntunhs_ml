@@ -389,7 +389,7 @@ const nextUn=q.cards.findIndex(c=>!c._answered);
 if(nextUn===-1){
 q._ci=q.cards.length;
 const wrongCount=q.cards.filter(c=>c._wrong).length;
-logAnswer(current,'Sorted '+q.cards.length+' items',wrongCount===0,score);
+const bPts=q.cards.filter(c=>!c._wrong).length;logAnswer(current,'Sorted '+q.cards.length+' items',wrongCount===0,bPts);
 document.getElementById('binaryCard').innerHTML='<strong>ALL DONE!</strong>';
 document.querySelectorAll('.binary-btn').forEach(b=>b.disabled=true);
 document.querySelectorAll('.carousel-arrow').forEach(a=>a.classList.add('disabled'));
